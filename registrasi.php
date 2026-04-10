@@ -12,43 +12,49 @@ if (isset($_SESSION["user"])){
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration Form</title>
+    <title>ArgonAuth | Portal Autentikasi</title>
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <title>ArgonAuth | Portal Autentikasi</title>
 </head>
-<body>
-    <body class="d-flex align-items-center justify-content-center vh-100 bg-light">
+
+<body class="d-flex align-items-center justify-content-center vh-100 bg-light">
     <div class="container">
+        <div class="text-center mb-4">
+            <h4 class="fw-bold">Registrasi ArgonAuth</h4>
+            <p class="text-muted small">Silakan lengkapi data diri Anda</p>
+        </div>
+
         <?php
         if (isset($_POST["submit"])) {
-            $fullName = $_POST["fullname"];
-            $email = $_POST["email"];
+            //  MITIGASI XSS: Sanitasi input
+            $fullName = htmlspecialchars($_POST["fullname"], ENT_QUOTES, 'UTF-8');
+            $email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
+            
             $password = $_POST["password"];
             $passwordRepeat = $_POST["repeat_password"];
 
-            // Enkripsi Argon2ID
+            //  INTEGRITY: Argon2ID Hash
             $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
             $errors = array();
 
             if (empty($fullName) OR empty($email) OR empty($password) OR empty($passwordRepeat)) {
-                array_push($errors, "All fields are required");
+                array_push($errors, "Semua kolom wajib diisi");
             }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                array_push($errors, "Email tidak valid");
+                array_push($errors, "Format email tidak valid");
             }
-            if (strlen($password)<8) {
-                array_push($errors,"Panjang password minimal lebih dari 8 karakter");
+            if (strlen($password) < 8) {
+                array_push($errors,"Password minimal 8 karakter");
             }
-            if ($password!==$passwordRepeat) {
-                array_push($errors,"Password tidak cocok");
+            if ($password !== $passwordRepeat) {
+                array_push($errors,"Konfirmasi password tidak cocok");
             }
             
             require_once "database.php";
             
-            // PERBAIKAN: Cek Email menggunakan Prepared Statement (Aman SQLi)
+            //  MITIGASI SQL INJECTION: Prepared Statement untuk Cek Email
             $sqlEmail = "SELECT * FROM users WHERE email = ?";
             $stmtEmail = mysqli_stmt_init($conn);
             if (mysqli_stmt_prepare($stmtEmail, $sqlEmail)) {
@@ -60,11 +66,12 @@ if (isset($_SESSION["user"])){
                 }
             }
 
-            if (count($errors)>0) {
+            if (count($errors) > 0) {
                 foreach ($errors as $error) {
-                    echo "<div class='alert alert-danger'>$error</div>";
+                    echo "<div class='alert alert-danger py-2'>$error</div>";
                 }
             } else {
+                //  MITIGASI SQL INJECTION: Prepared Statement untuk Insert
                 $sql = "INSERT INTO users (full_name, email, password) VALUES (?, ?, ?)";
                 $stmt = mysqli_stmt_init($conn);
                 $prepareStmt = mysqli_stmt_prepare($stmt, $sql);
@@ -72,31 +79,34 @@ if (isset($_SESSION["user"])){
                 if ($prepareStmt) {
                     mysqli_stmt_bind_param($stmt, "sss", $fullName, $email, $passwordHash);  
                     mysqli_stmt_execute($stmt);
-                    echo "<div class='alert alert-success'>Kamu berhasil registrasi.</div>";
+                    echo "<div class='alert alert-success'>Registrasi berhasil! <a href='login.php'>Login sekarang</a></div>";
                 } else {
-                    die("Sesuatu ada yang salah pada query database");
+                    die("Gagal memproses database.");
                 } 
             }
         }
         ?>
+
         <form action="registrasi.php" method="post">
             <div class="form-group mb-3">
-                <input type="text" class="form-control" name="fullname" placeholder="Nama lengkap">
+                <input type="text" class="form-control" name="fullname" placeholder="Nama Lengkap" maxlength="100" required>
             </div>
             <div class="form-group mb-3">
-                <input type="email" class="form-control" name="email" placeholder="Email">
+                <input type="email" class="form-control" name="email" placeholder="Email" maxlength="100" required>
             </div>
             <div class="form-group mb-3">
-                <input type="password" class="form-control" name="password" placeholder="Password">
+                <input type="password" class="form-control" name="password" placeholder="Password (Min. 8 Karakter)" maxlength="255" required>
             </div>
             <div class="form-group mb-3">
-                <input type="password" class="form-control" name="repeat_password" placeholder="Konfirmasi Password">
+                <input type="password" class="form-control" name="repeat_password" placeholder="Konfirmasi Password" maxlength="255" required>
             </div>
-            <div class="form-btn mb-3">
+            <div class="form-btn mb-3 d-grid">
                 <input type="submit" class="btn btn-primary" value="Register" name="submit">
             </div>
         </form>
-        <div><p>Sudah registrasi? <a href="login.php">Login di sini</a></p></div>
+        <div class="text-center">
+            <p class="small">Sudah punya akun? <a href="login.php" class="text-decoration-none">Login di sini</a></p>
+        </div>
     </div>
 </body>
 </html>

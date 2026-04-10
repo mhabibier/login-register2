@@ -1,29 +1,40 @@
-# ==========================
-# 🔒 File Sensitif
-# ==========================
-# Sembunyikan file database asli yang berisi kredensial
-database.php
+# ========================
+# ArgonAuth — .gitignore
+# ========================
 
-# ==========================
-# 🖥️ OS & Editor
-# ==========================
+# Jangan push file konfigurasi yang berisi kredensial sensitif
+# (Uncomment baris di bawah jika ingin mengecualikan database.php)
+# database.php
+
+# File environment / konfigurasi lokal
+.env
+config.local.php
+
+# Log files
+*.log
+logs/
+
+# Cache
+cache/
+*.cache
+
+# Dependency managers
+vendor/
+node_modules/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
 .DS_Store
 Thumbs.db
 desktop.ini
-.vscode/
-.idea/
 
-# ==========================
-# 📦 Dependency / Cache
-# ==========================
-vendor/
-node_modules/
-*.log
+# Temporary files
 *.tmp
-*.cache
-
-# ==========================
-# 🛠️ XAMPP / Local Server
-# ==========================
-*.sql
+*.temp
+*.swp
 *.bak

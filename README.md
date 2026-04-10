@@ -1,154 +1,223 @@
-# 🔐 ArgonAuth — Sistem Login & Registrasi
+# 🔐 ArgonAuth — Sistem Login & Registrasi Aman
 
-Sistem autentikasi berbasis **PHP & MySQL** dengan nama **ArgonAuth**, menggunakan algoritma hash password **Argon2ID** dan proteksi terhadap **SQL Injection** via Prepared Statement.
+> **Proyek Keamanan Sistem** | Telkom University — Tingkat 3 (2026)
 
----
-
-## 📸 Preview
-
-| Halaman Login | Halaman Registrasi | Halaman Dashboard |
-|:---:|:---:|:---:|
-| ![Login](login2.png) | ![Registrasi](regis2.png) | ![Dashboard](laman.png) |
+![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
+![Apache](https://img.shields.io/badge/Apache-XAMPP-F37623?style=for-the-badge&logo=apache&logoColor=white)
 
 ---
 
-## ✨ Fitur
+## 📌 Deskripsi Proyek
 
-### 🔑 Autentikasi
-- **Login** menggunakan email & password
-- Verifikasi password dengan `password_verify()` (aman, tidak bisa reverse)
-- Jika sudah login, otomatis diarahkan ke dashboard (`index.php`)
-- Jika belum login, akses ke dashboard otomatis ditolak dan diarahkan ke `login.php`
+**ArgonAuth** adalah aplikasi web autentikasi (login & registrasi) berbasis PHP dan MySQL yang dirancang dengan menerapkan berbagai teknik **mitigasi keamanan** sesuai standar modern, antara lain:
 
-### 📝 Registrasi
-- Input: **Nama Lengkap**, **Email**, **Password**, **Konfirmasi Password**
-- Validasi form lengkap:
-  - Semua field wajib diisi
-  - Format email divalidasi dengan `filter_var()`
-  - Password minimal **8 karakter**
-  - Password dan konfirmasi password harus cocok
-  - Email yang sudah terdaftar tidak bisa digunakan ulang
-- Password di-hash menggunakan **`PASSWORD_ARGON2ID`** (algoritma terkuat di PHP)
-- Pesan sukses/error ditampilkan langsung di halaman
-
-### 🛡️ Keamanan
-- Semua query database menggunakan **Prepared Statement** (`mysqli_stmt`) — aman dari SQL Injection
-- Password **tidak pernah disimpan dalam bentuk teks asli** di database
-- Session digunakan untuk manajemen autentikasi login
-- Logout menghancurkan seluruh session dengan `session_destroy()`
-
-### 🎨 Tampilan
-- Desain responsif menggunakan **Bootstrap 5.3.3**
-- Ikon dari **Font Awesome 6**
-- Tampilan card terpusat dengan shadow ungu (`style.css`)
-- Link navigasi antar halaman (Login ↔ Registrasi)
-
----
-
-## 🛠️ Teknologi
-
-| Komponen | Detail |
+| Ancaman | Mitigasi yang Diterapkan |
 |---|---|
-| **Backend** | PHP (Native) |
-| **Database** | MySQL via `mysqli` |
-| **Frontend** | HTML5 + Bootstrap 5.3.3 |
-| **Ikon** | Font Awesome 6 |
-| **Hashing** | `PASSWORD_ARGON2ID` (PHP built-in) |
-| **Query** | Prepared Statement (`mysqli_stmt`) |
+| **SQL Injection** | Prepared Statement (`mysqli_stmt`) |
+| **XSS (Cross-Site Scripting)** | `htmlspecialchars()` pada semua input |
+| **Password Plaintext** | Hashing dengan **Argon2ID** (`password_hash`) |
+| **Session Hijacking** | Session management dengan `session_start()` |
 
 ---
 
-## 📁 Struktur File
+## 🗂️ Struktur Direktori
 
 ```
 login-register2/
-├── index.php               # Dashboard (hanya bisa diakses setelah login)
-├── login.php               # Halaman login + logika autentikasi
-├── registrasi.php          # Halaman registrasi + validasi + insert ke DB
-├── logout.php              # Menghancurkan session & redirect ke login
-├── database.php            # Koneksi database (tidak di-push ke GitHub)
-├── database.example.php    # Template konfigurasi database (aman untuk di-push)
-├── style.css               # Styling card container (shadow, border-radius)
-├── login2.png              # Screenshot halaman login
-├── regis2.png              # Screenshot halaman registrasi
-├── laman.png               # Screenshot halaman dashboard
-└── README.md               # Dokumentasi proyek ini
+├── assets/
+│   ├── laman.png        # Screenshot halaman utama
+│   ├── login2.png       # Screenshot halaman login
+│   └── regis2.png       # Screenshot halaman registrasi
+├── database.php         # Konfigurasi koneksi database
+├── index.php            # Halaman utama (dashboard) — hanya bisa diakses setelah login
+├── login.php            # Halaman login
+├── logout.php           # Proses logout (hapus session)
+├── registrasi.php       # Halaman registrasi pengguna baru
+├── style.css            # File CSS tambahan
+└── README.md            # Dokumentasi proyek ini
 ```
 
 ---
 
-## ⚙️ Cara Instalasi
+## ✨ Fitur Utama
 
-### Prasyarat
-- [XAMPP](https://www.apachefriends.org/) sudah terinstall (Apache + MySQL)
-- PHP >= 7.4 *(Argon2ID membutuhkan PHP 7.3+)*
+- ✅ **Registrasi** pengguna baru dengan validasi lengkap
+- ✅ **Login** dengan verifikasi password terenkripsi
+- ✅ **Logout** yang membersihkan session
+- ✅ Proteksi halaman dashboard (redirect jika belum login)
+- ✅ Validasi email format, panjang password (min. 8 karakter), dan konfirmasi password
+- ✅ Tampilan responsif menggunakan **Bootstrap 5.3**
 
-### Langkah-langkah
+---
 
-**1. Clone repository ini:**
+## ⚙️ Prasyarat (Prerequisites)
+
+Pastikan lingkungan berikut sudah tersedia sebelum menjalankan proyek:
+
+| Software | Versi Minimum | Keterangan |
+|---|---|---|
+| **XAMPP** | 8.x | Sudah termasuk Apache + PHP + MySQL |
+| **PHP** | 8.0+ | Dibutuhkan untuk `PASSWORD_ARGON2ID` |
+| **MySQL** / **MariaDB** | 5.7+ | Database server |
+| **Web Browser** | Terbaru | Chrome, Firefox, Edge, dll. |
+| **Git** | Terbaru | Untuk clone repository |
+
+> ⚠️ **Penting:** `PASSWORD_ARGON2ID` memerlukan PHP versi **7.3 ke atas** dan ekstensi `sodium`. XAMPP versi terbaru sudah mendukung ini secara default.
+
+---
+
+## 🚀 Cara Instalasi & Menjalankan (di XAMPP / VMware)
+
+### Langkah 1 — Install XAMPP
+
+1. Download XAMPP dari [https://www.apachefriends.org](https://www.apachefriends.org)
+2. Install dan jalankan **XAMPP Control Panel**
+3. Klik **Start** pada modul **Apache** dan **MySQL**
+
+---
+
+### Langkah 2 — Clone Repository
+
+Buka **Terminal** (CMD / PowerShell / Git Bash) lalu jalankan:
+
 ```bash
-git clone https://github.com/USERNAME/NAMA-REPO.git
+cd C:/xampp/htdocs/
+git clone https://github.com/mhabibier/login-register2.git
+cd login-register2
 ```
 
-**2. Pindahkan folder ke direktori XAMPP:**
-```
-C:\xampp\htdocs\login-register2\
-```
+> 💡 Jika menggunakan **VMware Linux**, sesuaikan path:
+> ```bash
+> cd /opt/lampp/htdocs/
+> git clone https://github.com/mhabibier/login-register2.git
+> cd login-register2
+> ```
 
-**3. Buat database di phpMyAdmin (`http://localhost/phpmyadmin`):**
+---
+
+### Langkah 3 — Buat Database
+
+1. Buka browser dan akses **phpMyAdmin**: [http://localhost/phpmyadmin](http://localhost/phpmyadmin)
+2. Klik **"New"** → beri nama database: `login-register`
+3. Pilih database `login-register`, lalu klik tab **SQL**
+4. Jalankan query berikut:
+
 ```sql
-CREATE DATABASE `login-register`;
+CREATE DATABASE IF NOT EXISTS `login-register`;
 USE `login-register`;
 
 CREATE TABLE `users` (
-  `id`        INT AUTO_INCREMENT PRIMARY KEY,
+  `id`        INT(11) NOT NULL AUTO_INCREMENT,
   `full_name` VARCHAR(100) NOT NULL,
-  `email`     VARCHAR(150) NOT NULL UNIQUE,
+  `email`     VARCHAR(120) NOT NULL UNIQUE,
   `password`  VARCHAR(255) NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-> ⚠️ Pastikan nama kolom tabel sesuai: `full_name`, `email`, `password`
+---
 
-**4. Konfigurasi koneksi database:**
-```bash
-# Salin file contoh
-cp database.example.php database.php
-```
-Lalu edit `database.php` sesuai konfigurasi XAMPP lokal kamu:
+### Langkah 4 — Konfigurasi Database
+
+Buka file `database.php` dan sesuaikan dengan konfigurasi lokal kamu:
+
 ```php
-$hostName   = "localhost";
-$dbUser     = "root";
-$dbPassword = "";           // Default XAMPP: kosong
-$dbName     = "login-register";
+<?php
+$hostName   = "localhost";   // Host database
+$dbUser     = "root";        // Username MySQL (default XAMPP: root)
+$dbPassword = "";            // Password MySQL (default XAMPP: kosong)
+$dbName     = "login-register"; // Nama database yang sudah dibuat
+
+$conn = mysqli_connect($hostName, $dbUser, $dbPassword, $dbName);
+if (!$conn) {
+    die("Koneksi database gagal: " . mysqli_connect_error());
+}
+?>
 ```
 
-**5. Jalankan aplikasi:**
-- Aktifkan **Apache** dan **MySQL** di XAMPP Control Panel
-- Buka browser: `http://localhost/login-register2/login.php`
+> ⚠️ Jika kamu menggunakan password MySQL yang berbeda (misalnya di VM), sesuaikan `$dbPassword`.
 
 ---
 
-## 🔄 Alur Aplikasi
+### Langkah 5 — Akses Aplikasi
+
+Buka browser dan akses:
 
 ```
-[Pengguna Baru]
-    → registrasi.php (isi form → validasi → hash Argon2ID → simpan ke DB)
-    → login.php (masukkan email & password → verifikasi → session dibuat)
-    → index.php (dashboard, hanya untuk yang sudah login)
-    → logout.php (session dihancurkan → redirect ke login)
+http://localhost/login-register2/login.php
+```
+
+Atau untuk registrasi akun baru:
+```
+http://localhost/login-register2/registrasi.php
 ```
 
 ---
 
-## 👤 Author
+## 🖥️ Screenshot
 
-**Muhammad Habibie R**  
+### Halaman Login
+![Login](assets/login2.png)
 
+### Halaman Registrasi
+![Registrasi](assets/regis2.png)
+
+### Halaman Dashboard
+![Dashboard](assets/laman.png)
+
+---
+
+## 🔒 Penjelasan Keamanan
+
+### 1. SQL Injection Prevention — Prepared Statement
+```php
+$sql = "SELECT * FROM users WHERE email = ?";
+$stmt = mysqli_stmt_init($conn);
+mysqli_stmt_prepare($stmt, $sql);
+mysqli_stmt_bind_param($stmt, "s", $email);
+mysqli_stmt_execute($stmt);
+```
+Parameter query dipisahkan dari data pengguna sehingga query tidak bisa dimanipulasi.
+
+### 2. XSS Prevention — htmlspecialchars()
+```php
+$email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
+```
+Karakter berbahaya seperti `<`, `>`, `"` dikonversi menjadi entitas HTML yang aman.
+
+### 3. Password Hashing — Argon2ID
+```php
+$passwordHash = password_hash($password, PASSWORD_ARGON2ID);
+// Verifikasi:
+password_verify($password, $user["password"])
+```
+Argon2ID adalah algoritma hashing modern yang tahan terhadap serangan brute-force dan side-channel attack.
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+- **PHP 8** — Backend scripting
+- **MySQL** — Penyimpanan data pengguna
+- **Bootstrap 5.3** — Framework CSS responsif
+- **Font Awesome 6** — Icon library
+- **Apache (XAMPP)** — Web server lokal
+
+---
+
+## 👨‍💻 Author
+
+| Nama | NIM | Institusi |
+|---|---|---|
+| Muhammad Habibie R | - | Telkom University |
+
+> **Mata Kuliah:** Keamanan Sistem | **Tahun:** 2026
 
 ---
 
 ## 📄 Lisensi
 
-Project ini dibuat untuk keperluan tugas akademik mata kuliah Keamanan Sistem.
+Proyek ini dibuat untuk keperluan akademis. Dilarang menggunakan untuk tujuan komersial tanpa izin.

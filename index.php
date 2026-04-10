@@ -27,8 +27,8 @@ if (!isset($_SESSION["user"])){
         <i class="fas fa-user-circle fa-7x text-primary"></i>
     </div>
     
-    <h1>Selamat datang di Dasbor</h1>
-    <p class="lead mb-4">Anda berhasil login sistem aman kami.</p>
+    <h1>Selamat datang, <?php echo htmlspecialchars($_SESSION["full_name"], ENT_QUOTES, 'UTF-8'); ?>!</h1>
+    <p class="lead mb-4">Anda berhasil login ke sistem aman kami.</p>
     
     <a href="logout.php" class="btn btn-warning">
         <i class="fas fa-sign-out-alt mb-1"></i> Logout
