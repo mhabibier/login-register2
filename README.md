@@ -145,7 +145,7 @@ $dbName     = "login-register";
 ## 👤 Author
 
 **Muhammad Habibie R**  
-Telkom University — Keamanan Sistem, 2026
+
 
 ---
 
