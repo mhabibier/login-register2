@@ -1,0 +1,29 @@
+# ==========================
+# 🔒 File Sensitif
+# ==========================
+# Sembunyikan file database asli yang berisi kredensial
+database.php
+
+# ==========================
+# 🖥️ OS & Editor
+# ==========================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# ==========================
+# 📦 Dependency / Cache
+# ==========================
+vendor/
+node_modules/
+*.log
+*.tmp
+*.cache
+
+# ==========================
+# 🛠️ XAMPP / Local Server
+# ==========================
+*.sql
+*.bak

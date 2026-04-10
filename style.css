@@ -1,0 +1,17 @@
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f8f9fa; /* Warna latar sedikit abu-abu */
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 50px;
+  box-shadow: rgba(76, 34, 132, 0.2) 0px 7px 29px 0px;
+  background-color: white;
+  border-radius: 10px;
+}
