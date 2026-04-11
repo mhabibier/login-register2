@@ -208,15 +208,6 @@ Argon2ID adalah algoritma hashing modern yang tahan terhadap serangan brute-forc
 
 ---
 
-## 👨‍💻 Author
-
-| Nama | NIM | Institusi |
-|---|---|---|
-| Muhammad Habibie R | - | Telkom University |
-
-> **Mata Kuliah:** Keamanan Sistem | **Tahun:** 2026
-
----
 
 ## 📄 Lisensi
 
