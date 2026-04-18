@@ -37,9 +37,5 @@ RUN chmod 644 /etc/snort/snort.conf \
 RUN snort --version 2>&1 | head -5
 
 # Jalankan Snort dalam mode IDS
-# -A console : print alert ke stdout
-# -A fast    : simpan alert cepat ke file
-# -q         : quiet mode
-# -c         : file konfigurasi
-# -i eth0    : interface jaringan Docker
-CMD ["sh", "-c", "snort -A fast -q -c /etc/snort/snort.conf -i eth0 -l /var/log/snort 2>&1"]
+# Auto-detect interface jaringan (ens33, eth0, enp0s3, dll)
+CMD ["sh", "-c", "IFACE=$(ip route | grep default | awk '{print $5}' | head -1); echo \"[Snort] Detected interface: $IFACE\"; snort -A fast -q -c /etc/snort/snort.conf -i $IFACE -l /var/log/snort 2>&1"]
