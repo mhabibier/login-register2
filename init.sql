@@ -13,12 +13,12 @@ CREATE TABLE IF NOT EXISTS `users` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Admin default: email=admin@argon.local | password=AdminArgon123!
--- Hash di-generate dengan: password_hash('AdminArgon123!', PASSWORD_BCRYPT)
+-- Admin default: email=admin@argon.local | password=admin123
+-- Hash di-generate dengan: password_hash('admin123', PASSWORD_BCRYPT)
 INSERT IGNORE INTO `users` (full_name, email, password, role)
 VALUES (
     'Admin ArgonAuth',
     'admin@argon.local',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    '$2y$10$TKh8H1.PfYkfvfOU2S/bOuMb1Y.k4SrKrSV1KQM5bB.3ThjumMhHm',
     'admin'
 );
