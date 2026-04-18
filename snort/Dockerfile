@@ -81,18 +81,16 @@ RUN snort --version 2>&1 | head -3 \
     && echo "[Snort] Rules directory: $(ls /etc/snort/rules/)"
 
 # ============================================================
-# Jalankan Snort sebagai user 'snort' (BUKAN root)
-# ============================================================
-USER snort
-
-# ============================================================
-# CMD: Auto-detect interface, lalu jalankan Snort
-# Snort membutuhkan NET_ADMIN dan NET_RAW capability (set di docker-compose)
+# CMD: Mulai sebagai root → fix permission log dir
+#      → Snort drop ke user 'snort' via -u/-g flag
+# (Pola privilege drop yang benar untuk containerized IDS)
 # ============================================================
 CMD ["sh", "-c", "\
     IFACE=$(ip route 2>/dev/null | grep default | awk '{print $5}' | head -1); \
     if [ -z \"$IFACE\" ]; then IFACE=ens33; fi; \
-    echo \"[Snort] Running as user: $(whoami)\"; \
+    echo \"[Snort] Fixing log directory permissions...\"; \
+    mkdir -p /var/log/snort && chown -R snort:snort /var/log/snort && chmod 755 /var/log/snort; \
+    echo \"[Snort] Running as user: snort (privilege drop via -u/-g)\"; \
     echo \"[Snort] Detected interface: $IFACE\"; \
     echo \"[Snort] Local rules (argonauth.rules): $(wc -l < /etc/snort/rules/argonauth.rules) lines\"; \
     echo \"[Snort] Community rules: $(wc -l < /etc/snort/rules/community.rules) rules\"; \
