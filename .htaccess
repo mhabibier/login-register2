@@ -1,0 +1,42 @@
+# ============================================
+# ArgonAuth — .htaccess
+# ACL & Security Rules
+# ============================================
+
+# Aktifkan Rewrite Engine
+Options -Indexes
+RewriteEngine On
+
+# === Redirect HTTP → HTTPS ===
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# === ACL: Blokir akses ke file sensitif ===
+<FilesMatch "\.(sql|env|log|key|pem|crt|bak|tmp|sh)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# === ACL: Blokir akses langsung ke helper PHP ===
+<FilesMatch "^(auth_check|database)\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# === ACL: Blokir akses ke folder .git ===
+RedirectMatch 403 /\.git(/.*)?$
+
+# === ACL: Blokir akses ke folder ssl/ ===
+RedirectMatch 403 ^/ssl(/.*)?$
+
+# === Security: Nonaktifkan listing direktori ===
+Options -Indexes
+
+# === Security: Sembunyikan versi Apache & PHP ===
+ServerSignature Off
+
+# === Proteksi: Blokir user-agent yang mencurigakan ===
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP_USER_AGENT} (sqlmap|nikto|nmap|masscan|nessus|openvas) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>

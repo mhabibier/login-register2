@@ -47,3 +47,11 @@ ssl/
 
 # Logo asli (sudah di-copy ke assets/logo.png)
 Logo_Argon.png
+
+# Snort - log dan alert files (jangan push ke GitHub)
+snort/log/
+snort_logs/
+*.pcap
+*.log2
+alert.log
+snort.log*

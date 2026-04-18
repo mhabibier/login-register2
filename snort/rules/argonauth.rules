@@ -1,0 +1,199 @@
+# ============================================================
+# ArgonAuth Custom Snort Rules
+# Keamanan Sistem | Tel-U | NIM: 101032300005
+#
+# Format: alert <proto> <src_ip> <src_port> -> <dst_ip> <dst_port>
+#         (msg:"..."; options...; sid:XXXXXXX; rev:N;)
+#
+# SID range custom: 1000001 – 1000099
+# ============================================================
+
+# ============================================================
+# KATEGORI 1: Port Scan Detection
+# ============================================================
+
+# Rule 1.1 — TCP SYN Scan (Nmap default scan)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"PORTSCAN - TCP SYN Scan Detected (Possible Nmap)"; \
+     flags:S,!AF; \
+     threshold: type threshold, track by_src, count 15, seconds 2; \
+     classtype:attempted-recon; \
+     sid:1000001; rev:2;)
+
+# Rule 1.2 — UDP Scan
+alert udp $EXTERNAL_NET any -> $HOME_NET any \
+    (msg:"PORTSCAN - UDP Scan Detected"; \
+     threshold: type threshold, track by_src, count 20, seconds 3; \
+     classtype:attempted-recon; \
+     sid:1000002; rev:1;)
+
+# ============================================================
+# KATEGORI 2: Brute Force Login
+# ============================================================
+
+# Rule 2.1 — Brute Force ke login.php (banyak POST dalam waktu singkat)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"BRUTE FORCE - Multiple POST Attempts to login.php"; \
+     flow:to_server,established; \
+     content:"POST"; http_method; \
+     content:"/login.php"; http_uri; nocase; \
+     threshold: type threshold, track by_src, count 5, seconds 60; \
+     classtype:attempted-user; \
+     sid:1000010; rev:2;)
+
+# Rule 2.2 — Brute Force ke registrasi.php (cegah spam akun)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"BRUTE FORCE - Spam Registration Attempts to registrasi.php"; \
+     flow:to_server,established; \
+     content:"POST"; http_method; \
+     content:"/registrasi.php"; http_uri; nocase; \
+     threshold: type threshold, track by_src, count 10, seconds 120; \
+     classtype:attempted-user; \
+     sid:1000011; rev:1;)
+
+# ============================================================
+# KATEGORI 3: SQL Injection
+# ============================================================
+
+# Rule 3.1 — UNION SELECT (SQL Injection klasik)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SQL INJECTION - UNION SELECT in HTTP Request"; \
+     flow:to_server,established; \
+     content:"UNION"; http_uri; nocase; \
+     content:"SELECT"; http_uri; nocase; \
+     distance:0; within:20; \
+     classtype:web-application-attack; \
+     sid:1000020; rev:2;)
+
+# Rule 3.2 — OR 1=1 (bypass auth)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SQL INJECTION - OR 1=1 Boolean Bypass Attempt"; \
+     flow:to_server,established; \
+     content:"OR"; http_client_body; nocase; \
+     content:"1=1"; http_client_body; nocase; \
+     distance:0; within:10; \
+     classtype:web-application-attack; \
+     sid:1000021; rev:1;)
+
+# Rule 3.3 — DROP TABLE (destructive SQL)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SQL INJECTION - DROP TABLE Detected"; \
+     flow:to_server,established; \
+     content:"DROP"; nocase; http_uri; \
+     content:"TABLE"; nocase; http_uri; distance:0; within:15; \
+     classtype:web-application-attack; \
+     sid:1000022; rev:1;)
+
+# Rule 3.4 — SQL Comment injection (--)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SQL INJECTION - SQL Comment Sequence Detected (--)"; \
+     flow:to_server,established; \
+     content:"--"; http_uri; \
+     content:"SELECT"; http_uri; nocase; \
+     classtype:web-application-attack; \
+     sid:1000023; rev:1;)
+
+# ============================================================
+# KATEGORI 4: XSS (Cross-Site Scripting)
+# ============================================================
+
+# Rule 4.1 — Script tag di URL
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"XSS - Script Tag in HTTP URI"; \
+     flow:to_server,established; \
+     content:"<script"; http_uri; nocase; \
+     classtype:web-application-attack; \
+     sid:1000030; rev:2;)
+
+# Rule 4.2 — Script tag di body POST
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"XSS - Script Tag in POST Body"; \
+     flow:to_server,established; \
+     content:"<script"; http_client_body; nocase; \
+     classtype:web-application-attack; \
+     sid:1000031; rev:1;)
+
+# Rule 4.3 — javascript: protocol (event handler XSS)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"XSS - javascript: Protocol in Request"; \
+     flow:to_server,established; \
+     content:"javascript:"; http_uri; nocase; \
+     classtype:web-application-attack; \
+     sid:1000032; rev:1;)
+
+# ============================================================
+# KATEGORI 5: Akses File Sensitif
+# ============================================================
+
+# Rule 5.1 — Akses file .sql
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SENSITIVE FILE - Direct Access to .sql file"; \
+     flow:to_server,established; \
+     content:".sql"; http_uri; nocase; \
+     classtype:policy-violation; \
+     sid:1000040; rev:1;)
+
+# Rule 5.2 — Akses file .env
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SENSITIVE FILE - Direct Access to .env file"; \
+     flow:to_server,established; \
+     content:"/.env"; http_uri; \
+     classtype:policy-violation; \
+     sid:1000041; rev:1;)
+
+# Rule 5.3 — Akses folder .git
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SENSITIVE DIR - Direct Access to .git directory"; \
+     flow:to_server,established; \
+     content:"/.git/"; http_uri; \
+     classtype:policy-violation; \
+     sid:1000042; rev:1;)
+
+# Rule 5.4 — Akses file .pem / .key (SSL)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SENSITIVE FILE - Access to SSL Certificate or Key File"; \
+     flow:to_server,established; \
+     pcre:"/\.(pem|key|crt|p12)$/Ui"; \
+     http_uri; \
+     classtype:policy-violation; \
+     sid:1000043; rev:1;)
+
+# ============================================================
+# KATEGORI 6: Directory Traversal
+# ============================================================
+
+# Rule 6.1 — Path traversal ../
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"TRAVERSAL - Directory Traversal Attempt (../)"; \
+     flow:to_server,established; \
+     content:"../"; http_uri; \
+     classtype:web-application-attack; \
+     sid:1000050; rev:1;)
+
+# Rule 6.2 — Encoded path traversal %2e%2e
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"TRAVERSAL - Encoded Directory Traversal (%2e%2e)"; \
+     flow:to_server,established; \
+     content:"%2e%2e"; http_uri; nocase; \
+     classtype:web-application-attack; \
+     sid:1000051; rev:1;)
+
+# ============================================================
+# KATEGORI 7: Scanner atau Alat Serangan Umum
+# ============================================================
+
+# Rule 7.1 — Sqlmap User-Agent
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SCANNER - sqlmap Tool Detected via User-Agent"; \
+     flow:to_server,established; \
+     content:"sqlmap"; http_header; nocase; \
+     classtype:attempted-recon; \
+     sid:1000060; rev:1;)
+
+# Rule 7.2 — Nikto Scanner
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+    (msg:"SCANNER - Nikto Web Scanner Detected"; \
+     flow:to_server,established; \
+     content:"Nikto"; http_header; nocase; \
+     classtype:attempted-recon; \
+     sid:1000061; rev:1;)

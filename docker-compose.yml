@@ -1,23 +1,30 @@
 version: "3.8"
 
 services:
-  # === Container PHP + Apache ===
+
+  # ================================================================
+  # Container 1: PHP + Apache (Web Application)
+  # ================================================================
   app:
     build: .
     container_name: argonauth_app_101032300005
     ports:
-      - "8080:80"   # HTTP (akan redirect ke HTTPS)
-      - "8443:443"  # HTTPS: akses lewat https://localhost:8443
+      - "8080:80"   # HTTP → redirect ke HTTPS
+      - "8443:443"  # HTTPS: https://localhost:8443
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - .:/var/www/html               # Sinkronisasi file project
-      - ./ssl:/etc/ssl/mkcert:ro      # Mount sertifikat mkcert (read-only)
+      - ./ssl:/etc/ssl/mkcert:ro      # Sertifikat mkcert (read-only)
     networks:
-      - argonauth_network
+      - frontend_net   # App bisa diakses dari luar
+      - backend_net    # App bisa konek ke DB
+    restart: unless-stopped
 
-  # === Container MySQL ===
+  # ================================================================
+  # Container 2: MySQL Database
+  # ================================================================
   db:
     image: mysql:8.0
     container_name: argonauth_db_101032300005
@@ -26,22 +33,69 @@ services:
       MYSQL_DATABASE: login-register
       MYSQL_USER: user_argon
       MYSQL_PASSWORD: password_argon
-    ports:
-      - "3307:3306" # Port 3307 di host (hindari konflik dengan MySQL lokal)
+    # Port DB TIDAK di-expose ke host (keamanan: hanya app yang boleh akses)
+    # ports: - "3307:3306"  # Uncomment jika perlu debug dari host
     volumes:
-      - db_data:/var/lib/mysql # Data persisten
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Auto-import saat pertama jalan
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - argonauth_network
+      - backend_net    # DB HANYA di backend_net, tidak terekspos ke frontend
+    restart: unless-stopped
 
+  # ================================================================
+  # Container 3: Snort IDS (Intrusion Detection System)
+  # ================================================================
+  snort:
+    build:
+      context: ./snort
+      dockerfile: Dockerfile
+    container_name: argonauth_snort_101032300005
+    # network_mode host diperlukan di Linux agar Snort bisa membaca
+    # interface jaringan fisik host (VMware Ubuntu). 
+    # Di mode ini, 'networks' tidak digunakan.
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN   # Izin administrasi jaringan
+      - NET_RAW     # Izin packet capture (pcap)
+    volumes:
+      - snort_logs:/var/log/snort   # Log alert tersimpan persisten
+    depends_on:
+      - app
+    restart: unless-stopped
+
+# ================================================================
+# Volumes
+# ================================================================
 volumes:
   db_data:
+    name: argonauth_db_data
+  snort_logs:
+    name: argonauth_snort_logs
 
+# ================================================================
+# Networks — Segmentasi Jaringan (Prinsip Least Privilege)
+#
+#  frontend_net : app ↔ dunia luar (client browser)
+#  backend_net  : app ↔ db (DB tidak bisa dicapai dari luar!)
+#
+# Snort menggunakan network_mode: host sehingga tidak masuk di sini.
+# ================================================================
 networks:
-  argonauth_network:
+  frontend_net:
+    name: argonauth_frontend
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  backend_net:
+    name: argonauth_backend
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
