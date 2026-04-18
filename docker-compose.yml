@@ -68,6 +68,30 @@ services:
       - app
     restart: unless-stopped
 
+  # ================================================================
+  # Container 4: phpMyAdmin (User Management Interface)
+  # Akses: http://localhost:8081
+  # Login: root / root  ATAU  user_argon / password_argon
+  # ================================================================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: argonauth_phpmyadmin_101032300005
+    environment:
+      PMA_HOST: db                  # Nama service database
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+      UPLOAD_LIMIT: 50M
+    ports:
+      - "8081:80"   # http://localhost:8081
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend_net   # Hanya di backend (akses DB)
+      - frontend_net  # Bisa diakses dari browser
+    restart: unless-stopped
+
 # ================================================================
 # Volumes
 # ================================================================
