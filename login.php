@@ -25,12 +25,8 @@ if (isset($_POST["login"])) {
                 $_SESSION["full_name"] = $user["full_name"];
                 $_SESSION["role"]      = $user["role"];
 
-                // Redirect berdasarkan role
-                if ($user["role"] === "admin") {
-                    header("Location: admin.php");
-                } else {
-                    header("Location: index.php");
-                }
+                // Redirect ke dashboard
+                header("Location: index.php");
                 die();
             } else {
                 $error_msg = "Password salah.";
@@ -43,13 +39,9 @@ if (isset($_POST["login"])) {
     }
 }
 
-// Jika sudah login, redirect sesuai role
+// Jika sudah login, redirect ke dashboard
 if (isset($_SESSION["user"])) {
-    if (isset($_SESSION["role"]) && $_SESSION["role"] === "admin") {
-        header("Location: admin.php");
-    } else {
-        header("Location: index.php");
-    }
+    header("Location: index.php");
     die();
 }
 ?>
