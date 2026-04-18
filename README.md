@@ -2,10 +2,12 @@
 
 > **Proyek Keamanan Sistem** | Telkom University — Tingkat 3 (2026)
 
-![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?style=for-the-badge&logo=php&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-005C84?style=for-the-badge&logo=mysql&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
-![Apache](https://img.shields.io/badge/Apache-XAMPP-F37623?style=for-the-badge&logo=apache&logoColor=white)
+![Apache](https://img.shields.io/badge/Apache-2.4-D22128?style=for-the-badge&logo=apache&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![HTTPS](https://img.shields.io/badge/HTTPS-mkcert-00C853?style=for-the-badge&logo=letsencrypt&logoColor=white)
 
 ---
 
@@ -19,6 +21,7 @@
 | **XSS (Cross-Site Scripting)** | `htmlspecialchars()` pada semua input |
 | **Password Plaintext** | Hashing dengan **Argon2ID** (`password_hash`) |
 | **Session Hijacking** | Session management dengan `session_start()` |
+| **Man-in-the-Middle** | **HTTPS dengan mkcert** (TLS/SSL) |
 
 ---
 
@@ -26,17 +29,26 @@
 
 ```
 login-register2/
+├── apache/
+│   └── default-ssl.conf  # Konfigurasi Apache Virtual Host untuk HTTPS
 ├── assets/
-│   ├── laman.png        # Screenshot halaman utama
-│   ├── login2.png       # Screenshot halaman login
-│   └── regis2.png       # Screenshot halaman registrasi
-├── database.php         # Konfigurasi koneksi database
-├── index.php            # Halaman utama (dashboard) — hanya bisa diakses setelah login
-├── login.php            # Halaman login
-├── logout.php           # Proses logout (hapus session)
-├── registrasi.php       # Halaman registrasi pengguna baru
-├── style.css            # File CSS tambahan
-└── README.md            # Dokumentasi proyek ini
+│   ├── logo.png           # Logo ArgonAuth
+│   ├── laman.png          # Screenshot halaman dashboard
+│   ├── login2.png         # Screenshot halaman login
+│   └── regis2.png         # Screenshot halaman registrasi
+├── ssl/                   # ⚠️ Folder ini diisi mkcert di VM (tidak di-push ke GitHub)
+│   ├── localhost.pem      # Sertifikat SSL (di-generate mkcert)
+│   └── localhost-key.pem  # Private key SSL (di-generate mkcert)
+├── database.php           # Konfigurasi koneksi database
+├── docker-compose.yml     # Konfigurasi Docker Compose
+├── Dockerfile             # Image PHP + Apache + SSL
+├── index.php              # Halaman dashboard (butuh login)
+├── init.sql               # SQL otomatis buat tabel saat Docker pertama jalan
+├── login.php              # Halaman login
+├── logout.php             # Proses logout (hapus session)
+├── registrasi.php         # Halaman registrasi pengguna baru
+├── style.css              # CSS tambahan
+└── README.md              # Dokumentasi proyek ini
 ```
 
 ---
@@ -44,116 +56,192 @@ login-register2/
 ## ✨ Fitur Utama
 
 - ✅ **Registrasi** pengguna baru dengan validasi lengkap
-- ✅ **Login** dengan verifikasi password terenkripsi
+- ✅ **Login** dengan verifikasi password terenkripsi (Argon2ID)
 - ✅ **Logout** yang membersihkan session
 - ✅ Proteksi halaman dashboard (redirect jika belum login)
-- ✅ Validasi email format, panjang password (min. 8 karakter), dan konfirmasi password
+- ✅ Validasi email, panjang password (min. 8 karakter), dan konfirmasi password
 - ✅ Tampilan responsif menggunakan **Bootstrap 5.3**
+- ✅ **HTTPS** dengan sertifikat **mkcert** (tanpa warning browser)
+- ✅ **Containerized** menggunakan **Docker & Docker Compose**
+- ✅ Security headers (HSTS, X-Frame-Options, XSS-Protection)
 
 ---
 
 ## ⚙️ Prasyarat (Prerequisites)
 
-Pastikan lingkungan berikut sudah tersedia sebelum menjalankan proyek:
-
 | Software | Versi Minimum | Keterangan |
 |---|---|---|
-| **XAMPP** | 8.x | Sudah termasuk Apache + PHP + MySQL |
-| **PHP** | 8.0+ | Dibutuhkan untuk `PASSWORD_ARGON2ID` |
-| **MySQL** / **MariaDB** | 5.7+ | Database server |
+| **Docker** | 24.x | Container runtime |
+| **Docker Compose** | 2.x | Multi-container orchestration |
+| **mkcert** | 1.4.x | Generate SSL sertifikat lokal terpercaya |
+| **Git** | Terbaru | Clone repository |
 | **Web Browser** | Terbaru | Chrome, Firefox, Edge, dll. |
-| **Git** | Terbaru | Untuk clone repository |
 
-> ⚠️ **Penting:** `PASSWORD_ARGON2ID` memerlukan PHP versi **7.3 ke atas** dan ekstensi `sodium`. XAMPP versi terbaru sudah mendukung ini secara default.
-
----
-
-## 🚀 Cara Instalasi & Menjalankan (di XAMPP / VMware)
-
-### Langkah 1 — Install XAMPP
-
-1. Download XAMPP dari [https://www.apachefriends.org](https://www.apachefriends.org)
-2. Install dan jalankan **XAMPP Control Panel**
-3. Klik **Start** pada modul **Apache** dan **MySQL**
+> ⚠️ **Penting:** `PASSWORD_ARGON2ID` memerlukan PHP versi **7.3 ke atas**. Docker image `php:8.2-apache` sudah mendukung ini.
 
 ---
 
-### Langkah 2 — Clone Repository
+## 🚀 Cara Instalasi & Menjalankan (Docker + HTTPS)
 
-Buka **Terminal** (CMD / PowerShell / Git Bash) lalu jalankan:
+### Langkah 1 — Clone Repository
 
 ```bash
-cd C:/xampp/htdocs/
 git clone https://github.com/mhabibier/login-register2.git
 cd login-register2
 ```
 
-> 💡 Jika menggunakan **VMware Linux**, sesuaikan path:
-> ```bash
-> cd /opt/lampp/htdocs/
-> git clone https://github.com/mhabibier/login-register2.git
-> cd login-register2
-> ```
-
 ---
 
-### Langkah 3 — Buat Database
+### Langkah 2 — Install mkcert
 
-1. Buka browser dan akses **phpMyAdmin**: [http://localhost/phpmyadmin](http://localhost/phpmyadmin)
-2. Klik **"New"** → beri nama database: `login-register`
-3. Pilih database `login-register`, lalu klik tab **SQL**
-4. Jalankan query berikut:
+#### Ubuntu / Debian (VMware)
 
-```sql
-CREATE DATABASE IF NOT EXISTS `login-register`;
-USE `login-register`;
+```bash
+# Install dependency
+sudo apt update && sudo apt install -y libnss3-tools curl
 
-CREATE TABLE `users` (
-  `id`        INT(11) NOT NULL AUTO_INCREMENT,
-  `full_name` VARCHAR(100) NOT NULL,
-  `email`     VARCHAR(120) NOT NULL UNIQUE,
-  `password`  VARCHAR(255) NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+# Download mkcert
+curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
+chmod +x mkcert-v*-linux-amd64
+sudo mv mkcert-v*-linux-amd64 /usr/local/bin/mkcert
+
+# Verifikasi instalasi
+mkcert --version
+```
+
+#### Windows (opsional)
+
+```powershell
+# Menggunakan winget
+winget install FiloSottile.mkcert
+
+# Atau menggunakan Chocolatey
+choco install mkcert
 ```
 
 ---
 
-### Langkah 4 — Konfigurasi Database
+### Langkah 3 — Install CA & Generate Sertifikat SSL
 
-Buka file `database.php` dan sesuaikan dengan konfigurasi lokal kamu:
+```bash
+# Daftarkan CA ke sistem & browser (jalankan sekali saja)
+mkcert -install
 
-```php
-<?php
-$hostName   = "localhost";   // Host database
-$dbUser     = "root";        // Username MySQL (default XAMPP: root)
-$dbPassword = "";            // Password MySQL (default XAMPP: kosong)
-$dbName     = "login-register"; // Nama database yang sudah dibuat
+# Masuk ke folder project
+cd login-register2
 
-$conn = mysqli_connect($hostName, $dbUser, $dbPassword, $dbName);
-if (!$conn) {
-    die("Koneksi database gagal: " . mysqli_connect_error());
-}
-?>
+# Buat folder ssl
+mkdir -p ssl
+
+# Generate sertifikat untuk localhost
+mkcert -key-file ssl/localhost-key.pem \
+       -cert-file ssl/localhost.pem \
+       localhost 127.0.0.1 ::1
 ```
 
-> ⚠️ Jika kamu menggunakan password MySQL yang berbeda (misalnya di VM), sesuaikan `$dbPassword`.
+Hasil: dua file akan tersimpan di folder `ssl/`:
+- `ssl/localhost.pem` → Sertifikat SSL
+- `ssl/localhost-key.pem` → Private Key
+
+> ⚠️ Folder `ssl/` **tidak di-push ke GitHub** (sudah ada di `.gitignore`). Langkah ini harus diulang di setiap mesin baru.
+
+---
+
+### Langkah 4 — Jalankan dengan Docker Compose
+
+```bash
+# Pertama kali / setelah ada perubahan Dockerfile
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+
+# Jika tidak ada perubahan Dockerfile
+docker compose up -d
+```
+
+Cek status container:
+
+```bash
+docker compose ps
+```
+
+Output yang diharapkan:
+```
+NAME                          STATUS          PORTS
+argonauth_app_101032300005    Up              0.0.0.0:8080->80/tcp, 0.0.0.0:8443->443/tcp
+argonauth_db_101032300005     Up (healthy)    0.0.0.0:3307->3306/tcp
+```
 
 ---
 
 ### Langkah 5 — Akses Aplikasi
 
-Buka browser dan akses:
+| URL | Keterangan |
+|-----|-----------|
+| `https://localhost:8443` | ✅ HTTPS (disarankan) |
+| `https://localhost:8443/login.php` | Halaman Login |
+| `https://localhost:8443/registrasi.php` | Halaman Registrasi |
+| `http://localhost:8080` | HTTP → otomatis redirect ke HTTPS |
+
+> 💡 **Pastikan** `mkcert -install` sudah dijalankan agar browser tidak menampilkan warning "Not Secure".
+
+---
+
+## 🔒 Penjelasan Keamanan
+
+### 1. HTTPS dengan mkcert (Transport Layer Security)
 
 ```
-http://localhost/login-register2/login.php
+Browser ←── TLS/SSL (mkcert) ──→ Apache Docker
 ```
 
-Atau untuk registrasi akun baru:
+Semua data yang dikirim antara browser dan server **dienkripsi** menggunakan protokol **TLS 1.3**, mencegah serangan **Man-in-the-Middle (MitM)**.
+
+Security headers yang aktif:
+```apache
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
 ```
-http://localhost/login-register2/registrasi.php
+
+---
+
+### 2. SQL Injection Prevention — Prepared Statement
+
+```php
+$sql = "SELECT * FROM users WHERE email = ?";
+$stmt = mysqli_stmt_init($conn);
+mysqli_stmt_prepare($stmt, $sql);
+mysqli_stmt_bind_param($stmt, "s", $email);
+mysqli_stmt_execute($stmt);
 ```
+
+Parameter query dipisahkan dari data pengguna sehingga query tidak bisa dimanipulasi.
+
+---
+
+### 3. XSS Prevention — htmlspecialchars()
+
+```php
+$email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
+```
+
+Karakter berbahaya seperti `<`, `>`, `"` dikonversi menjadi entitas HTML yang aman.
+
+---
+
+### 4. Password Hashing — Argon2ID
+
+```php
+// Saat registrasi
+$passwordHash = password_hash($password, PASSWORD_ARGON2ID);
+
+// Saat login (verifikasi)
+password_verify($password, $user["password"]);
+```
+
+Argon2ID adalah algoritma hashing modern yang tahan terhadap serangan brute-force dan side-channel attack.
 
 ---
 
@@ -170,45 +258,56 @@ http://localhost/login-register2/registrasi.php
 
 ---
 
-## 🔒 Penjelasan Keamanan
-
-### 1. SQL Injection Prevention — Prepared Statement
-```php
-$sql = "SELECT * FROM users WHERE email = ?";
-$stmt = mysqli_stmt_init($conn);
-mysqli_stmt_prepare($stmt, $sql);
-mysqli_stmt_bind_param($stmt, "s", $email);
-mysqli_stmt_execute($stmt);
-```
-Parameter query dipisahkan dari data pengguna sehingga query tidak bisa dimanipulasi.
-
-### 2. XSS Prevention — htmlspecialchars()
-```php
-$email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
-```
-Karakter berbahaya seperti `<`, `>`, `"` dikonversi menjadi entitas HTML yang aman.
-
-### 3. Password Hashing — Argon2ID
-```php
-$passwordHash = password_hash($password, PASSWORD_ARGON2ID);
-// Verifikasi:
-password_verify($password, $user["password"])
-```
-Argon2ID adalah algoritma hashing modern yang tahan terhadap serangan brute-force dan side-channel attack.
-
----
-
 ## 🛠️ Teknologi yang Digunakan
 
-- **PHP 8** — Backend scripting
-- **MySQL** — Penyimpanan data pengguna
-- **Bootstrap 5.3** — Framework CSS responsif
-- **Font Awesome 6** — Icon library
-- **Apache (XAMPP)** — Web server lokal
+| Teknologi | Versi | Fungsi |
+|-----------|-------|--------|
+| **PHP** | 8.2 | Backend scripting |
+| **MySQL** | 8.0 | Penyimpanan data pengguna |
+| **Apache** | 2.4 | Web server |
+| **Bootstrap** | 5.3 | Framework CSS responsif |
+| **Font Awesome** | 6 | Icon library |
+| **Docker** | 24.x | Containerization |
+| **Docker Compose** | 2.x | Multi-container orchestration |
+| **mkcert** | 1.4.x | SSL sertifikat lokal terpercaya |
 
 ---
 
+## ❓ Troubleshooting
+
+### Browser masih tampilkan "Not Secure"
+```bash
+# Pastikan mkcert CA sudah terdaftar
+mkcert -install
+# Restart browser setelah install
+```
+
+### Error `dpkg lock` saat install di Ubuntu
+```bash
+sudo kill -9 $(lsof /var/lib/dpkg/lock-frontend | awk 'NR>1{print $2}')
+sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock
+sudo dpkg --configure -a
+```
+
+### Error `init.sql: not a directory` saat docker compose up
+```bash
+# Hapus volume lama dan jalankan ulang
+docker compose down -v
+docker compose up -d
+```
+
+### Container tidak jalan / port tidak terbuka
+```bash
+# Cek status container
+docker compose ps
+
+# Lihat log error
+docker compose logs app
+```
+
+---
 
 ## 📄 Lisensi
 
-Proyek ini dibuat untuk keperluan akademis. Dilarang menggunakan untuk tujuan komersial tanpa izin.
+Proyek ini dibuat untuk keperluan **akademis** — Mata Kuliah Keamanan Sistem, Telkom University 2026.
+Dilarang menggunakan untuk tujuan komersial tanpa izin.
