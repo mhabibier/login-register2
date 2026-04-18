@@ -47,26 +47,6 @@ services:
       - backend_net    # DB HANYA di backend_net, tidak terekspos ke frontend
     restart: unless-stopped
 
-  # ================================================================
-  # Container 3: Snort IDS (Intrusion Detection System)
-  # ================================================================
-  snort:
-    build:
-      context: ./snort
-      dockerfile: Dockerfile
-    container_name: argonauth_snort_101032300005
-    # network_mode host diperlukan di Linux agar Snort bisa membaca
-    # interface jaringan fisik host (VMware Ubuntu). 
-    # Di mode ini, 'networks' tidak digunakan.
-    network_mode: "host"
-    cap_add:
-      - NET_ADMIN   # Izin administrasi jaringan
-      - NET_RAW     # Izin packet capture (pcap)
-    volumes:
-      - snort_logs:/var/log/snort   # Log alert tersimpan persisten
-    depends_on:
-      - app
-    restart: unless-stopped
 
   # ================================================================
   # Container 4: phpMyAdmin (User Management Interface)
@@ -98,8 +78,6 @@ services:
 volumes:
   db_data:
     name: argonauth_db_data
-  snort_logs:
-    name: argonauth_snort_logs
 
 # ================================================================
 # Networks — Segmentasi Jaringan (Prinsip Least Privilege)
