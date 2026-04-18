@@ -38,3 +38,12 @@ desktop.ini
 *.temp
 *.swp
 *.bak
+
+# SSL Certificates (jangan push private key ke GitHub!)
+ssl/
+*.pem
+*.key
+*.crt
+
+# Logo asli (sudah di-copy ke assets/logo.png)
+Logo_Argon.png

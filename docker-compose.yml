@@ -1,34 +1,36 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # === Container PHP + Apache ===
   app:
     build: .
-    container_name: argonauth_app
+    container_name: argonauth_app_101032300005
     ports:
-      - "8080:80"        # Akses lewat browser: http://localhost:8080
+      - "8080:80"   # HTTP (akan redirect ke HTTPS)
+      - "8443:443"  # HTTPS: akses lewat https://localhost:8443
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - .:/var/www/html  # Sinkronisasi file langsung (tidak perlu rebuild)
+      - .:/var/www/html               # Sinkronisasi file project
+      - ./ssl:/etc/ssl/mkcert:ro      # Mount sertifikat mkcert (read-only)
     networks:
       - argonauth_network
 
   # === Container MySQL ===
   db:
     image: mysql:8.0
-    container_name: argonauth_db
+    container_name: argonauth_db_101032300005
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: login-register
       MYSQL_USER: user_argon
       MYSQL_PASSWORD: password_argon
     ports:
-      - "3307:3306"      # Port 3307 di host (hindari konflik dengan MySQL lokal)
+      - "3307:3306" # Port 3307 di host (hindari konflik dengan MySQL lokal)
     volumes:
-      - db_data:/var/lib/mysql          # Data persisten
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Auto-import saat pertama jalan
+      - db_data:/var/lib/mysql # Data persisten
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Auto-import saat pertama jalan
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
