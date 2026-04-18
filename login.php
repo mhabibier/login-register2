@@ -58,7 +58,7 @@ if (isset($_SESSION["user"])) {
             <div class="alert alert-danger"><?= htmlspecialchars($error_msg) ?></div>
         <?php endif; ?>
         <div class="text-center mb-4">
-            <img src="assets/logo.png" alt="ArgonAuth Logo" class="mb-3" style="width: 90px; height: auto;">
+            <i class="fas fa-lock fa-3x text-primary mb-3"></i>
             <h4 class="fw-bold">Login ArgonAuth</h4>
         </div>
         <form action="login.php" method="post">

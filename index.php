@@ -27,7 +27,7 @@ if (!isset($_SESSION["user"])) {
     <body class="d-flex align-items-center justify-content-center vh-100 bg-light">
         <div class="container mt-5 text-center">
             <div class="mb-4">
-                <img src="assets/logo.png" alt="ArgonAuth Logo" style="width: 160px; height: auto; object-fit: contain;">
+                <i class="fas fa-user-circle fa-7x text-primary"></i>
             </div>
 
             <h1>Selamat datang, <?php echo htmlspecialchars($_SESSION["full_name"], ENT_QUOTES, 'UTF-8'); ?>!</h1>
