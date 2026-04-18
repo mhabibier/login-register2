@@ -1,0 +1,66 @@
+# =============================================================
+# argonauth.rules — Custom Snort Rules
+# ArgonAuth DevSecOps Project | NIM: 101032300005
+#
+# SID Range: 9001000–9001099
+# =============================================================
+
+# ----------------------------------------------------------------
+# SECTION 1: ICMP — Deteksi Ping / ICMP Flood
+# ----------------------------------------------------------------
+
+# Deteksi ping biasa dari luar ke dalam jaringan app
+alert icmp any any -> $HOME_NET any (msg:"[ArgonAuth] ICMP Ping Detected"; itype:8; classtype:misc-activity; sid:9001001; rev:1;)
+
+# Deteksi ICMP flood (lebih dari threshold biasa)
+alert icmp any any -> $HOME_NET any (msg:"[ArgonAuth] ICMP Flood Detected"; itype:8; detection_filter:track by_src, count 10, seconds 5; classtype:attempted-dos; sid:9001002; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 2: HTTP — Deteksi Akses ke login.php
+# ----------------------------------------------------------------
+
+# Deteksi GET ke login.php
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP GET login.php Accessed"; flow:to_server,established; content:"GET"; http_method; content:"/login.php"; http_uri; classtype:web-application-activity; sid:9001010; rev:1;)
+
+# Deteksi POST login (percobaan login)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP POST login.php - Login Attempt"; flow:to_server,established; content:"POST"; http_method; content:"/login.php"; http_uri; classtype:web-application-activity; sid:9001011; rev:1;)
+
+# Deteksi akses registrasi
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP GET registrasi.php Accessed"; flow:to_server,established; content:"GET"; http_method; content:"/registrasi.php"; http_uri; classtype:web-application-activity; sid:9001012; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 3: BRUTE FORCE — Deteksi Login Berulang
+# ----------------------------------------------------------------
+
+# Brute force: 5 POST login dalam 10 detik dari IP yang sama
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] BRUTE FORCE - Multiple Login Attempts"; flow:to_server,established; content:"POST"; http_method; content:"/login.php"; http_uri; detection_filter:track by_src, count 5, seconds 10; classtype:attempted-user; sid:9001020; rev:2;)
+
+# Brute force lebih agresif: 15 POST dalam 30 detik
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] BRUTE FORCE AGGRESSIVE - Possible Attack"; flow:to_server,established; content:"POST"; http_method; content:"/login.php"; http_uri; detection_filter:track by_src, count 15, seconds 30; classtype:attempted-user; priority:1; sid:9001021; rev:2;)
+
+
+# ----------------------------------------------------------------
+# SECTION 4: PORT SCAN — Deteksi SYN Scan
+# ----------------------------------------------------------------
+
+# SYN scan ke port HTTP/HTTPS
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] TCP SYN Scan Detected"; flags:S,12; flow:stateless; detection_filter:track by_src, count 20, seconds 5; classtype:attempted-recon; sid:9001030; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 5: DATABASE — Proteksi Port MySQL
+# ----------------------------------------------------------------
+
+# Percobaan akses langsung ke port MySQL dari luar subnet backend
+alert tcp !$HOME_NET any -> $HOME_NET 3306 (msg:"[ArgonAuth] Unauthorized MySQL Access Attempt"; flow:to_server; classtype:attempted-user; priority:1; sid:9001040; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 6: HTTPS — Monitor Trafik Port 443/8443
+# ----------------------------------------------------------------
+
+# Monitor koneksi ke port HTTPS aplikasi
+alert tcp any any -> $HOME_NET 443 (msg:"[ArgonAuth] New HTTPS Connection"; flow:to_server; flags:S; classtype:misc-activity; sid:9001050; rev:1;)
+alert tcp any any -> $HOME_NET 8443 (msg:"[ArgonAuth] New HTTPS:8443 Connection"; flow:to_server; flags:S; classtype:misc-activity; sid:9001051; rev:1;)

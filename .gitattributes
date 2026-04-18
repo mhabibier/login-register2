@@ -1,0 +1,43 @@
+# ================================================
+# .gitattributes — ArgonAuth DevSecOps Project
+# Paksa LF untuk file yang dijalankan di Linux
+# ================================================
+
+# Shell scripts — HARUS LF (bukan CRLF) di Linux container
+*.sh text eol=lf
+
+# Dockerfile
+Dockerfile text eol=lf
+
+# Snort config dan rules
+*.conf text eol=lf
+*.rules text eol=lf
+
+# YAML (docker-compose)
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# PHP & SQL
+*.php text eol=lf
+*.sql text eol=lf
+
+# Web files
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+
+# Text files
+*.md text eol=lf
+*.txt text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files — jangan diubah line ending-nya
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pem binary
+*.key binary
+*.crt binary
