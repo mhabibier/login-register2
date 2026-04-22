@@ -30,11 +30,12 @@ mkdir -p /var/log/snort
 touch /var/log/snort/snort.alert.fast
 chown -R snort:snort /var/log/snort 2>/dev/null || true
 
-# ---- Salin unicode.map dari instalasi Snort ----
+# ---- Verifikasi unicode.map tersedia ----
 # File ini dibutuhkan oleh preprocessor http_inspect
-if [ -f /etc/snort/unicode.map ] && [ ! -f /etc/snort/rules/unicode.map ]; then
-    cp /etc/snort/unicode.map /etc/snort/rules/unicode.map
-    echo "[INFO] unicode.map disalin ke /etc/snort/rules/"
+if [ -f /etc/snort/unicode.map ]; then
+    echo "[INFO] unicode.map ditemukan di /etc/snort/unicode.map"
+else
+    echo "[WARN] unicode.map tidak ditemukan — http_inspect mungkin gagal"
 fi
 
 # ---- Test konfigurasi Snort ----
