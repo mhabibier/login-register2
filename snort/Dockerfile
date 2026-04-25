@@ -31,8 +31,8 @@ RUN mkdir -p /var/log/snort /etc/snort/rules /etc/snort/so_rules /etc/snort/prep
 COPY snort.conf /etc/snort/snort.conf
 COPY rules/argonauth.rules /etc/snort/rules/argonauth.rules
 
-# Salin placeholder community rules (akan diisi auto-update saat startup)
-COPY rules/emerging-threats.rules /etc/snort/rules/emerging-threats.rules
+# emerging-threats.rules TIDAK di-COPY di sini karena ada di .gitignore
+# File akan dibuat otomatis oleh entrypoint.sh saat container pertama kali start
 
 # Salin script entrypoint dan manual update
 COPY entrypoint.sh /entrypoint.sh

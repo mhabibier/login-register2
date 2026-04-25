@@ -96,6 +96,13 @@ HEADER
     echo ""
 }
 
+# Pastikan file emerging-threats.rules selalu ada (placeholder jika belum didownload)
+# Ini mencegah error Snort saat include file tidak ditemukan
+if [ ! -f /etc/snort/rules/emerging-threats.rules ]; then
+    echo "[INFO] Membuat placeholder emerging-threats.rules..."
+    echo "# Placeholder — akan diisi oleh auto-update saat startup" > /etc/snort/rules/emerging-threats.rules
+fi
+
 # Jalankan auto-update
 auto_update_community_rules
 
