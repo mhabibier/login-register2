@@ -62,7 +62,19 @@ services:
     volumes:
       - snort_logs:/var/log/snort          # Simpan log alert
       - ./snort/snort.conf:/etc/snort/snort.conf:ro
-      - ./snort/rules:/etc/snort/rules:ro
+      # Rules TIDAK read-only — agar entrypoint.sh bisa menulis community rules
+      # (emerging-threats.rules didownload otomatis saat startup)
+      - ./snort/rules:/etc/snort/rules
+    # Healthcheck: pastikan proses snort masih berjalan
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "snort"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s   # Beri waktu Snort selesai download ET rules
+    labels:
+      - "com.argonauth.service=snort-ids"
+      - "com.argonauth.nim=101032300005"
     restart: unless-stopped
     depends_on:
       - app

@@ -42,11 +42,20 @@ alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] BRUTE FORCE AGGRESS
 
 
 # ----------------------------------------------------------------
-# SECTION 4: PORT SCAN — Deteksi SYN Scan
+# SECTION 4: PORT SCAN — Deteksi SYN Scan & Stealth Scan
 # ----------------------------------------------------------------
 
 # SYN scan ke port HTTP/HTTPS
 alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] TCP SYN Scan Detected"; flags:S,12; flow:stateless; detection_filter:track by_src, count 20, seconds 5; classtype:attempted-recon; sid:9001030; rev:1;)
+
+# NULL Scan — paket TCP tanpa flag (stealth recon)
+alert tcp any any -> $HOME_NET any (msg:"[ArgonAuth] TCP NULL Scan Detected"; flags:0; flow:stateless; classtype:attempted-recon; sid:9001031; rev:1;)
+
+# FIN Scan — hanya flag FIN (stealth recon)
+alert tcp any any -> $HOME_NET any (msg:"[ArgonAuth] TCP FIN Scan Detected"; flags:F,12; flow:stateless; classtype:attempted-recon; sid:9001032; rev:1;)
+
+# XMAS Scan — flag FIN+PSH+URG menyala semua (Nmap -sX)
+alert tcp any any -> $HOME_NET any (msg:"[ArgonAuth] TCP XMAS Scan Detected"; flags:FPU,12; flow:stateless; classtype:attempted-recon; sid:9001033; rev:1;)
 
 
 # ----------------------------------------------------------------
@@ -64,3 +73,17 @@ alert tcp !$HOME_NET any -> $HOME_NET 3306 (msg:"[ArgonAuth] Unauthorized MySQL 
 # Monitor koneksi ke port HTTPS aplikasi
 alert tcp any any -> $HOME_NET 443 (msg:"[ArgonAuth] New HTTPS Connection"; flow:to_server; flags:S; classtype:misc-activity; sid:9001050; rev:1;)
 alert tcp any any -> $HOME_NET 8443 (msg:"[ArgonAuth] New HTTPS:8443 Connection"; flow:to_server; flags:S; classtype:misc-activity; sid:9001051; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 7: ICMP ATTACK & UDP FLOOD
+# ----------------------------------------------------------------
+
+# ICMP Redirect — serangan manipulasi routing
+alert icmp any any -> $HOME_NET any (msg:"[ArgonAuth] ICMP Redirect Attack Detected"; itype:5; classtype:attempted-recon; priority:2; sid:9001003; rev:1;)
+
+# UDP Flood ke port HTTP/HTTPS aplikasi
+alert udp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] UDP Flood Detected on App Port"; detection_filter:track by_src, count 50, seconds 5; classtype:attempted-dos; priority:2; sid:9001004; rev:1;)
+
+# HTTP GET Flood — Layer 7 DoS
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP GET Flood - Possible DoS"; flow:to_server,established; content:"GET"; http_method; detection_filter:track by_src, count 30, seconds 10; classtype:attempted-dos; priority:2; sid:9001022; rev:1;)

@@ -7,7 +7,8 @@
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
 ![Apache](https://img.shields.io/badge/Apache-2.4-D22128?style=for-the-badge&logo=apache&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![HTTPS](https://img.shields.io/badge/HTTPS-mkcert-00C853?style=for-the-badge&logo=letsencrypt&logoColor=white)
+![HTTPS](https://img.shields.io/badge/HTTPS-mkcert%20ECDSA-00C853?style=for-the-badge&logo=letsencrypt&logoColor=white)
+![Snort](https://img.shields.io/badge/Snort-2.9.x%20IDS-FF0000?style=for-the-badge&logo=snort&logoColor=white)
 
 ---
 
@@ -18,10 +19,16 @@
 | Ancaman | Mitigasi yang Diterapkan |
 |---|---|
 | **SQL Injection** | Prepared Statement (`mysqli_stmt`) |
-| **XSS (Cross-Site Scripting)** | `htmlspecialchars()` pada semua input |
-| **Password Plaintext** | Hashing dengan **Argon2ID** (`password_hash`) |
-| **Session Hijacking** | Session management dengan `session_start()` |
-| **Man-in-the-Middle** | **HTTPS dengan mkcert** (TLS/SSL) |
+| **XSS (Cross-Site Scripting)** | `htmlspecialchars()` + Content-Security-Policy header |
+| **CSRF (Cross-Site Request Forgery)** | CSRF Token (`hash_equals` + `random_bytes`) |
+| **Brute Force Login** | Rate limiting (5 percobaan → lockout 15 menit) |
+| **Session Fixation** | `session_regenerate_id(true)` setelah login |
+| **Password Plaintext** | Hashing **Argon2ID** dengan salt otomatis |
+| **Buffer Overflow** | `maxlength` HTML + validasi `strlen` server-side |
+| **Man-in-the-Middle** | **HTTPS TLS (ECDSA P-256)** via mkcert |
+| **Port Scan / Recon** | Snort IDS (SYN, NULL, FIN, XMAS scan detection) |
+| **DoS / DDoS** | Snort IDS (ICMP flood, UDP flood, HTTP GET flood) |
+| **Unauthorized DB Access** | ACL jaringan Docker (backend_net isolasi) + Snort rule |
 
 ---
 
@@ -56,14 +63,19 @@ login-register2/
 ## ✨ Fitur Utama
 
 - ✅ **Registrasi** pengguna baru dengan validasi lengkap
-- ✅ **Login** dengan verifikasi password terenkripsi (Argon2ID)
+- ✅ **Login** dengan verifikasi password terenkripsi (Argon2ID + salt)
 - ✅ **Logout** yang membersihkan session
 - ✅ Proteksi halaman dashboard (redirect jika belum login)
 - ✅ Validasi email, panjang password (min. 8 karakter), dan konfirmasi password
+- ✅ **CSRF Protection** — token acak per-session di semua form
+- ✅ **Rate Limiting** — lockout 15 menit setelah 5 percobaan login gagal
+- ✅ **Session Fixation Protection** — `session_regenerate_id()` setelah login
 - ✅ Tampilan responsif menggunakan **Bootstrap 5.3**
-- ✅ **HTTPS** dengan sertifikat **mkcert** (tanpa warning browser)
-- ✅ **Containerized** menggunakan **Docker & Docker Compose**
-- ✅ Security headers (HSTS, X-Frame-Options, XSS-Protection)
+- ✅ **HTTPS** dengan sertifikat **mkcert** (ECDSA P-256, tanpa warning browser)
+- ✅ **Containerized** menggunakan **Docker & Docker Compose** (4 container)
+- ✅ Security headers (HSTS, CSP, X-Frame-Options, X-XSS-Protection)
+- ✅ **Snort IDS** — deteksi intrusi jaringan real-time
+- ✅ **ACL** jaringan Docker (isolasi DB di backend_net)
 
 ---
 
@@ -303,6 +315,123 @@ docker compose ps
 
 # Lihat log error
 docker compose logs app
+```
+
+---
+
+## 🛡️ Snort IDS — Pengujian & Monitoring
+
+### Cek Status Snort
+
+```bash
+# Pastikan Snort berjalan (healthy)
+docker compose ps
+
+# Lihat log Snort secara real-time
+docker logs -f argonauth_snort_101032300005
+
+# Monitor alert secara langsung
+docker exec argonauth_snort_101032300005 tail -f /var/log/snort/snort.alert.fast
+```
+
+---
+
+### Cara Trigger Setiap Rule (Pengujian)
+
+> Jalankan perintah berikut **dari container user** (simulasi attacker):
+> ```bash
+> docker exec -it argonauth_user_101032300005 sh
+> ```
+
+| Rule yang Diuji | Perintah Pengujian |
+|---|---|
+| **ICMP Ping** | `ping -c 3 172.20.0.1` |
+| **ICMP Flood** | `ping -f 172.20.0.1` |
+| **HTTP GET login.php** | `curl -k https://172.20.0.2:443/login.php` |
+| **Brute Force Login** | `for i in $(seq 1 10); do curl -k -X POST https://172.20.0.2/login.php -d 'email=test@test.com&password=wrong'; done` |
+| **SYN Scan** | `nmap -sS 172.20.0.2` |
+| **NULL Scan** | `nmap -sN 172.20.0.2` |
+| **FIN Scan** | `nmap -sF 172.20.0.2` |
+| **XMAS Scan** | `nmap -sX 172.20.0.2` |
+| **Akses MySQL langsung** | `nc -zv 172.21.0.2 3306` |
+
+---
+
+### Update Community Rules (Emerging Threats)
+
+**Auto-update** — terjadi otomatis saat container pertama kali start.
+
+**Manual update** — jalankan kapan saja:
+```bash
+# Update rule dari Emerging Threats (web-server, dos, scan, sql)
+docker exec argonauth_snort_101032300005 /usr/local/bin/update_rules.sh
+
+# Cek info update terakhir
+docker exec argonauth_snort_101032300005 cat /etc/snort/rules/.community_rules_meta
+```
+
+Output contoh setelah update berhasil:
+```
+last_update=2026-04-25 14:00:00
+total_rules=4823
+success=4
+failed=0
+```
+
+---
+
+### Struktur Rule Lokal (argonauth.rules)
+
+| Section | SID Range | Deskripsi |
+|---|---|---|
+| SECTION 1 | 9001001–9001004 | ICMP Ping, Flood, Redirect, UDP Flood |
+| SECTION 2 | 9001010–9001012 | HTTP akses login/registrasi |
+| SECTION 3 | 9001020–9001022 | Brute Force & HTTP GET Flood |
+| SECTION 4 | 9001030–9001033 | SYN, NULL, FIN, XMAS Scan |
+| SECTION 5 | 9001040 | Unauthorized MySQL Access |
+| SECTION 6 | 9001050–9001051 | HTTPS Connection Monitor |
+
+---
+
+## ❓ Troubleshooting
+
+### Browser masih tampilkan "Not Secure"
+```bash
+# Pastikan mkcert CA sudah terdaftar
+mkcert -install
+# Restart browser setelah install
+```
+
+### Error `dpkg lock` saat install di Ubuntu
+```bash
+sudo kill -9 $(lsof /var/lib/dpkg/lock-frontend | awk 'NR>1{print $2}')
+sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock
+sudo dpkg --configure -a
+```
+
+### Error `init.sql: not a directory` saat docker compose up
+```bash
+# Hapus volume lama dan jalankan ulang
+docker compose down -v
+docker compose up -d
+```
+
+### Container tidak jalan / port tidak terbuka
+```bash
+# Cek status container
+docker compose ps
+
+# Lihat log error
+docker compose logs app
+```
+
+### Snort container unhealthy
+```bash
+# Cek log Snort
+docker logs argonauth_snort_101032300005
+
+# Jalankan ulang Snort
+docker compose restart snort
 ```
 
 ---

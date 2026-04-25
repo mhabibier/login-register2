@@ -4,6 +4,13 @@ if (isset($_SESSION["user"])){
     header("Location: index.php");
     die();
 }
+
+// =============================================
+//  CSRF Token Generation
+// =============================================
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 ?>
 
 <!DOCTYPE html>
@@ -28,6 +35,15 @@ if (isset($_SESSION["user"])){
 
         <?php
         if (isset($_POST["submit"])) {
+
+            // =============================================
+            //  CSRF Validation
+            // =============================================
+            if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+                echo "<div class='alert alert-danger py-2'>Permintaan tidak valid. Silakan muat ulang halaman.</div>";
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            } else {
+
             //  MITIGASI XSS: Sanitasi input
             $fullName = htmlspecialchars($_POST["fullname"], ENT_QUOTES, 'UTF-8');
             $email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
@@ -84,6 +100,7 @@ if (isset($_SESSION["user"])){
                     die("Gagal memproses database.");
                 } 
             }
+            } // end else (CSRF valid)
         }
         ?>
 
@@ -101,6 +118,7 @@ if (isset($_SESSION["user"])){
                 <input type="password" class="form-control" name="repeat_password" placeholder="Konfirmasi Password" maxlength="255" required>
             </div>
             <div class="form-btn mb-3 d-grid">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="submit" class="btn btn-primary" value="Register" name="submit">
             </div>
         </form>

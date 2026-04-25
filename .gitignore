@@ -55,3 +55,9 @@ snort_logs/
 *.log2
 alert.log
 snort.log*
+
+# Snort - Community rules hasil download (auto-generated, jangan di-push)
+# File ini didownload otomatis oleh entrypoint.sh saat container start
+snort/rules/emerging-*.rules
+snort/rules/.community_rules_meta
+snort/rules/.last_update

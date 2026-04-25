@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
-LABEL maintainer="ArgonAuth DevSecOps"
-LABEL description="Snort 2 IDS Container"
+LABEL maintainer="ArgonAuth DevSecOps | NIM: 101032300005"
+LABEL description="Snort 2 IDS Container — ArgonAuth DevSecOps Project"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     iputils-ping \
     curl \
+    wget \
+    tar \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,7 +30,13 @@ RUN mkdir -p /var/log/snort /etc/snort/rules /etc/snort/so_rules /etc/snort/prep
 # Salin konfigurasi
 COPY snort.conf /etc/snort/snort.conf
 COPY rules/argonauth.rules /etc/snort/rules/argonauth.rules
+
+# Salin placeholder community rules (akan diisi auto-update saat startup)
+COPY rules/emerging-threats.rules /etc/snort/rules/emerging-threats.rules
+
+# Salin script entrypoint dan manual update
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY update_rules.sh /usr/local/bin/update_rules.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/update_rules.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

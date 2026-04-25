@@ -1,41 +1,86 @@
 <?php
 session_start();
 
-$error_msg = "";
+// =============================================
+//  CSRF Token Generation
+// =============================================
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
-if (isset($_POST["login"])) {
-    $email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
-    $password = $_POST["password"];
+// =============================================
+//  Rate Limiting — Login Throttle
+// =============================================
+define('MAX_LOGIN_ATTEMPTS', 5);   // Maks percobaan gagal
+define('LOCKOUT_DURATION',   900); // Lockout 15 menit (detik)
 
-    require_once "database.php";
+$error_msg   = "";
+$is_locked   = false;
+$lockout_msg = "";
 
-    $sql = "SELECT * FROM users WHERE email = ?";
-    $stmt = mysqli_stmt_init($conn);
+// Cek apakah akun sedang dikunci
+if (!empty($_SESSION['lockout_until'])) {
+    if (time() < $_SESSION['lockout_until']) {
+        $remaining   = ceil(($_SESSION['lockout_until'] - time()) / 60);
+        $is_locked   = true;
+        $lockout_msg = "Terlalu banyak percobaan login. Coba lagi dalam <strong>{$remaining} menit</strong>.";
+    } else {
+        // Lockout sudah habis — reset counter
+        unset($_SESSION['login_attempts'], $_SESSION['lockout_until']);
+    }
+}
 
-    if (mysqli_stmt_prepare($stmt, $sql)) {
-        mysqli_stmt_bind_param($stmt, "s", $email);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $user = mysqli_fetch_array($result, MYSQLI_ASSOC);
+if (isset($_POST["login"]) && !$is_locked) {
 
-        if ($user) {
-            if (password_verify($password, $user["password"])) {
+    // =============================================
+    //  CSRF Validation
+    // =============================================
+    if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error_msg = "Permintaan tidak valid. Silakan muat ulang halaman.";
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); // Regenerate
+    } else {
+
+        $email    = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
+        $password = $_POST["password"];
+
+        require_once "database.php";
+
+        $sql  = "SELECT * FROM users WHERE email = ?";
+        $stmt = mysqli_stmt_init($conn);
+
+        if (mysqli_stmt_prepare($stmt, $sql)) {
+            mysqli_stmt_bind_param($stmt, "s", $email);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $user   = mysqli_fetch_array($result, MYSQLI_ASSOC);
+
+            if ($user && password_verify($password, $user["password"])) {
+                // Login berhasil — reset rate limiter & cegah session fixation
+                unset($_SESSION['login_attempts'], $_SESSION['lockout_until']);
+                session_regenerate_id(true);
+
                 $_SESSION["user"]      = "yes";
                 $_SESSION["user_id"]   = $user["id"];
                 $_SESSION["full_name"] = $user["full_name"];
                 $_SESSION["role"]      = $user["role"];
 
-                // Redirect ke dashboard
                 header("Location: index.php");
                 die();
             } else {
-                $error_msg = "Password salah.";
+                // Login gagal — increment attempt counter
+                $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
+                if ($_SESSION['login_attempts'] >= MAX_LOGIN_ATTEMPTS) {
+                    $_SESSION['lockout_until'] = time() + LOCKOUT_DURATION;
+                    $is_locked   = true;
+                    $lockout_msg = "Terlalu banyak percobaan. Akun dikunci selama <strong>15 menit</strong>.";
+                } else {
+                    $sisa      = MAX_LOGIN_ATTEMPTS - $_SESSION['login_attempts'];
+                    $error_msg = "Email atau password salah. Sisa percobaan: <strong>{$sisa}</strong>.";
+                }
             }
         } else {
-            $error_msg = "Email tidak terdaftar.";
+            $error_msg = "Terjadi kesalahan pada sistem.";
         }
-    } else {
-        $error_msg = "Terjadi kesalahan pada sistem.";
     }
 }
 
@@ -59,8 +104,10 @@ if (isset($_SESSION["user"])) {
 
 <body class="d-flex align-items-center justify-content-center vh-100 bg-light">
     <div class="container">
-        <?php if ($error_msg): ?>
-            <div class="alert alert-danger"><?= htmlspecialchars($error_msg) ?></div>
+        <?php if ($is_locked && $lockout_msg): ?>
+            <div class="alert alert-warning">&#9203; <?= $lockout_msg ?></div>
+        <?php elseif ($error_msg): ?>
+            <div class="alert alert-danger"><?= $error_msg ?></div>
         <?php endif; ?>
         <div class="text-center mb-4">
             <img src="assets/logo.png" alt="ArgonAuth Logo" style="width: 160px; height: 160px; object-fit: contain;" class="mb-3">
@@ -75,8 +122,10 @@ if (isset($_SESSION["user"])) {
                 <input type="password" class="form-control" name="password" placeholder="Masukkan Password"
                     maxlength="255" required>
             </div>
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="form-btn mb-3 d-grid">
-                <input type="submit" class="btn btn-primary" value="Login" name="login">
+                <input type="submit" class="btn btn-primary" value="Login" name="login"
+                    <?= $is_locked ? 'disabled title="Akun dikunci sementara"' : '' ?>>
             </div>
         </form>
         <div class="text-center">
