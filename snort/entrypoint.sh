@@ -118,21 +118,16 @@ fi
 auto_update_community_rules
 
 # ---- Auto-detect interface ----
-# Cari interface yang punya subnet Docker kita (172.20.x.x atau 172.21.x.x)
-IFACE=$(ip route | grep -E "172\.(20|21)\." | awk '{print $3}' | head -1)
+# Gunakan 'any' agar Snort monitor SEMUA interface Docker sekaligus
+# (frontend_net br-xxx DAN backend_net br-yyy)
+# Ini penting karena Docker punya beberapa bridge network
+IFACE="any"
 
-if [ -z "$IFACE" ]; then
-    # Fallback: interface pertama selain loopback
-    IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -v lo | head -1)
-fi
-
-if [ -z "$IFACE" ]; then
-    IFACE="eth0"
-fi
-
-echo "[INFO] Interface terdeteksi : $IFACE"
+# Tampilkan interface yang tersedia untuk informasi
+echo "[INFO] Interface terdeteksi : $IFACE (monitor semua interface)"
 echo "[INFO] Daftar interface     :"
 ip -o link show | awk -F': ' '{print "  - "$2}'
+
 
 # ---- Pastikan log directory dan file ada ----
 mkdir -p /var/log/snort
