@@ -141,7 +141,7 @@ ip -o link show | awk -F': ' '{print "  - "$2}'
 
 # ---- Pastikan log directory dan file ada ----
 mkdir -p /var/log/snort
-touch /var/log/snort/snort.alert.fast
+touch /var/log/snort/alert
 chown -R snort:snort /var/log/snort 2>/dev/null || true
 
 # ---- Verifikasi unicode.map tersedia ----
@@ -159,7 +159,7 @@ snort -T -c /etc/snort/snort.conf -i "$IFACE" 2>&1 | grep -E "(Snort|Rule|ERROR|
 
 echo ""
 echo "[INFO] Menjalankan Snort di interface: $IFACE"
-echo "[INFO] Log alerts : /var/log/snort/snort.alert.fast"
+echo "[INFO] Log alerts : /var/log/snort/alert"
 echo "============================================"
 
 # ---- Jalankan Snort sebagai background process (IDS / passive mode) ----
@@ -179,9 +179,15 @@ snort \
 SNORT_PID=$!
 echo "[INFO] Snort berjalan dengan PID: $SNORT_PID"
 
+# ---- Tunggu sebentar lalu cek alert file ----
+sleep 2
+echo "[INFO] File alert yang tersedia:"
+ls -la /var/log/snort/alert* 2>/dev/null || echo "[WARN] Tidak ada file alert!"
+ls -la /var/log/snort/snort.alert* 2>/dev/null || true
+
 # ---- Tail alert log agar terlihat di docker logs ----
-echo "[INFO] Menampilkan live alerts (tail -F)..."
-tail -F /var/log/snort/snort.alert.fast 2>/dev/null &
+echo "[INFO] Menampilkan live alerts (tail -F /var/log/snort/alert)..."
+tail -F /var/log/snort/alert 2>/dev/null &
 
 # ---- Tunggu proses snort selesai (jaga container tetap hidup) ----
 wait $SNORT_PID
