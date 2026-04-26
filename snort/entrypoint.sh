@@ -118,14 +118,24 @@ fi
 auto_update_community_rules
 
 # ---- Auto-detect interface ----
-# Gunakan 'any' agar Snort monitor SEMUA interface Docker sekaligus
-# (frontend_net br-xxx DAN backend_net br-yyy)
-# Ini penting karena Docker punya beberapa bridge network
-IFACE="any"
+# Cari semua interface Docker bridge (br-xxxx) yang aktif
+# Snort akan dijalankan di interface frontend (172.20.x.x)
+IFACE=$(ip route | grep "172\.20\." | awk '{print $3}' | head -1)
 
-# Tampilkan interface yang tersedia untuk informasi
-echo "[INFO] Interface terdeteksi : $IFACE (monitor semua interface)"
-echo "[INFO] Daftar interface     :"
+if [ -z "$IFACE" ]; then
+    # Fallback: coba backend bridge
+    IFACE=$(ip route | grep "172\.21\." | awk '{print $3}' | head -1)
+fi
+
+if [ -z "$IFACE" ]; then
+    # Fallback terakhir: interface pertama bukan loopback
+    IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^lo$' | head -1)
+fi
+
+echo "[INFO] Interface terdeteksi : $IFACE"
+echo "[INFO] Daftar route Docker  :"
+ip route | grep -E "172\.(20|21)\."
+echo "[INFO] Daftar semua interface :"
 ip -o link show | awk -F': ' '{print "  - "$2}'
 
 
