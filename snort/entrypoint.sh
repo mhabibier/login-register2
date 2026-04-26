@@ -62,19 +62,25 @@ HEADER
         printf "[INFO]   Downloading %-35s ... " "${RULE_FILE}"
 
         if curl -sS --max-time 20 --retry 2 -o "${TEMP}" "${URL}" 2>/dev/null; then
-            COUNT=$(grep -cE "^(alert|drop|reject|pass)" "${TEMP}" 2>/dev/null || echo 0)
-            printf "OK (%d rules)\n" "${COUNT}"
-            {
-                echo ""
-                echo "# ---- ${RULE_FILE} (Downloaded: ${TIMESTAMP}) ----"
-                cat "${TEMP}"
-            } >> "${ET_OUTPUT}"
-            TOTAL_RULES=$((TOTAL_RULES + COUNT))
-            SUCCESS=$((SUCCESS + 1))
-            rm -f "${TEMP}"
+            # Validasi: file tidak boleh berisi HTML (artinya server return error page)
+            if grep -qi "<html" "${TEMP}" 2>/dev/null; then
+                printf "INVALID (server returned HTML, bukan rules)\n"
+                rm -f "${TEMP}"
+                FAILED=$((FAILED + 1))
+            else
+                COUNT=$(grep -cE "^(alert|drop|reject|pass)" "${TEMP}" 2>/dev/null || echo 0)
+                printf "OK (%d rules)\n" "${COUNT}"
+                {
+                    echo ""
+                    echo "# ---- ${RULE_FILE} (Downloaded: ${TIMESTAMP}) ----"
+                    cat "${TEMP}"
+                } >> "${ET_OUTPUT}"
+                TOTAL_RULES=$((TOTAL_RULES + COUNT))
+                SUCCESS=$((SUCCESS + 1))
+                rm -f "${TEMP}"
+            fi
         else
-            printf "GAGAL (tidak ada internet?)\
-"
+            printf "GAGAL (tidak ada internet?)\n"
             FAILED=$((FAILED + 1))
         fi
     done
@@ -97,10 +103,15 @@ HEADER
 }
 
 # Pastikan file emerging-threats.rules selalu ada (placeholder jika belum didownload)
-# Ini mencegah error Snort saat include file tidak ditemukan
+# Jika file ada tapi berisi HTML (curl error page), hapus dan buat ulang sebagai placeholder
 if [ ! -f /etc/snort/rules/emerging-threats.rules ]; then
     echo "[INFO] Membuat placeholder emerging-threats.rules..."
     echo "# Placeholder — akan diisi oleh auto-update saat startup" > /etc/snort/rules/emerging-threats.rules
+elif grep -qi "<html" /etc/snort/rules/emerging-threats.rules 2>/dev/null; then
+    echo "[WARN] emerging-threats.rules berisi HTML (download sebelumnya gagal) — reset ke placeholder"
+    echo "# Placeholder — download gagal, akan dicoba ulang" > /etc/snort/rules/emerging-threats.rules
+    # Hapus metadata agar auto-update berjalan ulang
+    rm -f /etc/snort/rules/.community_rules_meta
 fi
 
 # Jalankan auto-update
