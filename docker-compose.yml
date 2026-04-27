@@ -18,6 +18,12 @@ services:
     networks:
       - frontend_net
       - backend_net
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:443/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   # ================================================================
