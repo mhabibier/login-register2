@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================
-# Snort IDS Entrypoint — ArgonAuth DevSecOps
+# Snort IDS Entrypoint — ArgonAuth Kamsis
 # Auto-detect network interface Docker
 # =============================================================
 
@@ -48,7 +48,7 @@ auto_update_community_rules() {
     cat > "${ET_OUTPUT}" << HEADER
 # =============================================================
 # emerging-threats.rules — Emerging Threats Open Ruleset
-# ArgonAuth DevSecOps | NIM: 101032300005
+# ArgonAuth Kamsis | NIM: 101032300005
 # Auto-downloaded: ${TIMESTAMP}
 # Sumber: https://rules.emergingthreats.net/open/snort-2.9.0/rules/
 # =============================================================
@@ -117,31 +117,80 @@ fi
 # Jalankan auto-update
 auto_update_community_rules
 
-# ---- Auto-detect interface ----
-# Cari semua interface Docker bridge (br-xxxx) yang aktif
-# Snort akan dijalankan di interface frontend (172.20.x.x)
-IFACE=$(ip route | grep "172\.20\." | awk '{print $3}' | head -1)
+# ============================================================
+# AUTO-DETECT INTERFACE — PERBAIKAN UTAMA
+# ============================================================
+# Pada network_mode: host, Snort melihat semua interface host (termasuk Docker bridges).
+# Kita perlu menemukan interface bridge Docker yang membawa traffic frontend_net (172.20.x.x).
+#
+# Format output `ip route`:
+#   172.20.0.0/24 dev br-abc123 proto kernel scope link src 172.20.0.1
+# Interface ada setelah keyword "dev"
+# ============================================================
+
+echo ""
+echo "[INFO] === Deteksi Interface ==="
+echo "[INFO] Semua routes:"
+ip route
+echo ""
+
+# Metode 1: Cari interface untuk subnet frontend (172.20.x.x)
+IFACE=$(ip route | grep "172\.20\." | grep -oP 'dev \K\S+' | head -1)
+echo "[INFO] Metode 1 (frontend 172.20.x): IFACE=$IFACE"
 
 if [ -z "$IFACE" ]; then
-    # Fallback: coba backend bridge
-    IFACE=$(ip route | grep "172\.21\." | awk '{print $3}' | head -1)
+    # Metode 2: Cari interface untuk subnet backend (172.21.x.x)
+    IFACE=$(ip route | grep "172\.21\." | grep -oP 'dev \K\S+' | head -1)
+    echo "[INFO] Metode 2 (backend 172.21.x): IFACE=$IFACE"
 fi
 
 if [ -z "$IFACE" ]; then
-    # Fallback terakhir: interface pertama bukan loopback
-    IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^lo$' | head -1)
+    # Metode 3: Cari semua Docker bridge interfaces (br-xxxxx)
+    IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep '^br-' | head -1)
+    echo "[INFO] Metode 3 (any br- interface): IFACE=$IFACE"
 fi
 
-echo "[INFO] Interface terdeteksi : $IFACE"
-echo "[INFO] Daftar route Docker  :"
-ip route | grep -E "172\.(20|21)\."
-echo "[INFO] Daftar semua interface :"
+if [ -z "$IFACE" ]; then
+    # Metode 4: Cari docker0
+    IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep '^docker0$' | head -1)
+    echo "[INFO] Metode 4 (docker0): IFACE=$IFACE"
+fi
+
+if [ -z "$IFACE" ]; then
+    # Metode 5 (fallback terakhir): interface pertama bukan loopback
+    IFACE=$(ip -o link show up | awk -F': ' '{print $2}' | grep -vE '^lo$' | head -1)
+    echo "[INFO] Metode 5 (fallback first non-lo): IFACE=$IFACE"
+fi
+
+# Validasi interface benar-benar ada dan UP
+if [ -z "$IFACE" ]; then
+    echo "[ERROR] Tidak bisa menemukan interface jaringan!"
+    echo "[ERROR] Daftar semua interface:"
+    ip -o link show
+    exit 1
+fi
+
+# Pastikan interface UP
+ip link set "$IFACE" up 2>/dev/null || true
+
+echo ""
+echo "[INFO] ✅ Interface terpilih: $IFACE"
+echo "[INFO] Detail interface:"
+ip addr show "$IFACE" 2>/dev/null || true
+echo ""
+echo "[INFO] Routes terkait Docker:"
+ip route | grep -E "172\.(20|21)\." || echo "[WARN] Tidak ada route 172.20.x/172.21.x"
+echo ""
+echo "[INFO] Semua interface yang tersedia:"
 ip -o link show | awk -F': ' '{print "  - "$2}'
 
 
 # ---- Pastikan log directory dan file ada ----
 mkdir -p /var/log/snort
 touch /var/log/snort/alert
+# Beri permission write ke semua user (agar snort user bisa menulis)
+chmod 777 /var/log/snort
+chmod 666 /var/log/snort/alert
 chown -R snort:snort /var/log/snort 2>/dev/null || true
 
 # ---- Verifikasi unicode.map tersedia ----
@@ -154,44 +203,55 @@ fi
 
 # ---- Test konfigurasi Snort ----
 echo ""
+echo "[INFO] ============================================"
 echo "[INFO] Memvalidasi konfigurasi Snort..."
-snort -T -c /etc/snort/snort.conf -i "$IFACE" 2>&1 | grep -E "(Snort|Rule|ERROR|WARNING|Successfully)" || true
+echo "[INFO] ============================================"
+VALIDATION_OUTPUT=$(snort -T -c /etc/snort/snort.conf -i "$IFACE" 2>&1)
+VALIDATION_EXIT=$?
+
+# Tampilkan output penting dari validasi
+echo "$VALIDATION_OUTPUT" | grep -E "(Snort|Rule|ERROR|WARNING|Successfully|FATAL|fatal)" || true
+
+if [ $VALIDATION_EXIT -ne 0 ]; then
+    echo ""
+    echo "[ERROR] ❌ Validasi Snort GAGAL (exit code: $VALIDATION_EXIT)"
+    echo "[ERROR] Full output:"
+    echo "$VALIDATION_OUTPUT" | tail -30
+    echo ""
+    echo "[WARN] Mencoba jalankan Snort tanpa preprocessor yang bermasalah..."
+fi
 
 echo ""
+echo "[INFO] ============================================"
 echo "[INFO] Menjalankan Snort di interface: $IFACE"
 echo "[INFO] Log alerts : /var/log/snort/alert"
-echo "============================================"
+echo "[INFO] Mode       : IDS pasif (tanpa -Q)"
+echo "[INFO] Alert format: fast (-A fast)"
+echo "[INFO] ============================================"
 
-# ---- Jalankan Snort sebagai background process (IDS / passive mode) ----
+# ---- Jalankan Snort sebagai FOREGROUND process ----
 # CATATAN:
 #   -A fast  : format alert satu baris (mudah dibaca)
 #   -k none  : abaikan checksum error (umum di Docker)
 #   TANPA -Q : Mode IDS pasif (bukan IPS inline) — cocok untuk monitoring
-snort \
+#   -K ascii : log packets in ASCII (lebih mudah dibaca)
+#   --daq-dir: tidak perlu karena kita pakai default DAQ (pcap)
+#
+# PERBAIKAN: Jalankan Snort di foreground agar container langsung mati
+# kalau Snort crash — jangan pakai background (&) + wait
+# ============================================================
+
+# Jalankan tail di background untuk menampilkan alert di docker logs
+tail -F /var/log/snort/alert 2>/dev/null &
+TAIL_PID=$!
+
+# Jalankan Snort di foreground (tanpa &)
+# Ini memastikan container mati kalau Snort mati
+exec snort \
     -A fast \
     -c /etc/snort/snort.conf \
     -i "$IFACE" \
     -l /var/log/snort \
     -u snort \
     -g snort \
-    -k none 2>&1 &
-
-SNORT_PID=$!
-echo "[INFO] Snort berjalan dengan PID: $SNORT_PID"
-
-# ---- Tunggu sebentar lalu cek alert file ----
-sleep 2
-echo "[INFO] File alert yang tersedia:"
-ls -la /var/log/snort/alert* 2>/dev/null || echo "[WARN] Tidak ada file alert!"
-ls -la /var/log/snort/snort.alert* 2>/dev/null || true
-
-# ---- Tail alert log agar terlihat di docker logs ----
-echo "[INFO] Menampilkan live alerts (tail -F /var/log/snort/alert)..."
-tail -F /var/log/snort/alert 2>/dev/null &
-
-# ---- Tunggu proses snort selesai (jaga container tetap hidup) ----
-wait $SNORT_PID
-EXIT_CODE=$?
-echo "[WARN] Snort berhenti dengan exit code: $EXIT_CODE"
-exit $EXIT_CODE
-
+    -k none

@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
-LABEL maintainer="ArgonAuth DevSecOps | NIM: 101032300005"
-LABEL description="Snort 2 IDS Container — ArgonAuth DevSecOps Project"
+LABEL maintainer="ArgonAuth Kamsis | NIM: 101032300005"
+LABEL description="Snort 2 IDS Container — ArgonAuth Kamsis Project"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y \
     wget \
     tar \
     ca-certificates \
+    tcpdump \
+    procps \
+    grep \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================
 # update_rules.sh — Manual Update Emerging Threats Community Rules
-# ArgonAuth DevSecOps | NIM: 101032300005
+# ArgonAuth Kamsis | NIM: 101032300005
 #
 # Cara pakai (manual update dari host):
 #   docker exec argonauth_snort_101032300005 /usr/local/bin/update_rules.sh
@@ -41,7 +41,7 @@ mkdir -p "${RULES_DIR}"
 cat > "${ET_OUTPUT}" << EOF
 # =============================================================
 # emerging-threats.rules — Emerging Threats Open Ruleset
-# ArgonAuth DevSecOps | NIM: 101032300005
+# ArgonAuth Kamsis | NIM: 101032300005
 #
 # Sumber  : https://rules.emergingthreats.net/open/snort-2.9.0/rules/
 # Update  : ${TIMESTAMP}
