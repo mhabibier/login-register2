@@ -1,5 +1,22 @@
 <?php
+// =============================================
+//  Security Headers
+// =============================================
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+
+// =============================================
+//  Secure Session Configuration
+// =============================================
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Strict');
 session_start();
+
 if (isset($_SESSION["user"])){
     header("Location: index.php");
     die();
@@ -44,9 +61,11 @@ if (empty($_SESSION['csrf_token'])) {
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             } else {
 
-            //  MITIGASI XSS: Sanitasi input
-            $fullName = htmlspecialchars($_POST["fullname"], ENT_QUOTES, 'UTF-8');
-            $email = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
+            //  MITIGASI XSS: Sanitasi dilakukan saat OUTPUT, bukan INPUT
+            //  Data disimpan dalam bentuk asli (raw) di database,
+            //  lalu di-escape dengan htmlspecialchars() saat ditampilkan.
+            $fullName = trim($_POST["fullname"]);
+            $email = trim($_POST["email"]);
             
             $password = $_POST["password"];
             $passwordRepeat = $_POST["repeat_password"];
@@ -57,6 +76,14 @@ if (empty($_SESSION['csrf_token'])) {
 
             if (empty($fullName) OR empty($email) OR empty($password) OR empty($passwordRepeat)) {
                 array_push($errors, "Semua kolom wajib diisi");
+            }
+            //  MITIGASI XSS: Whitelist validation untuk nama
+            //  Hanya izinkan huruf, spasi, titik, koma, dan tanda hubung
+            if (!preg_match('/^[a-zA-Z\s\.\,\-\']+$/u', $fullName)) {
+                array_push($errors, "Nama hanya boleh mengandung huruf, spasi, titik, koma, dan tanda hubung");
+            }
+            if (strlen($fullName) > 100) {
+                array_push($errors, "Nama maksimal 100 karakter");
             }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 array_push($errors, "Format email tidak valid");
@@ -95,6 +122,10 @@ if (empty($_SESSION['csrf_token'])) {
                 if ($prepareStmt) {
                     mysqli_stmt_bind_param($stmt, "sss", $fullName, $email, $passwordHash);  
                     mysqli_stmt_execute($stmt);
+
+                    //  Regenerate CSRF token setelah aksi berhasil
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
                     echo "<div class='alert alert-success'>Registrasi berhasil! <a href='login.php'>Login sekarang</a></div>";
                 } else {
                     die("Gagal memproses database.");

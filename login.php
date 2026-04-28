@@ -1,4 +1,20 @@
 <?php
+// =============================================
+//  Security Headers
+// =============================================
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+
+// =============================================
+//  Secure Session Configuration
+// =============================================
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Strict');
 session_start();
 
 // =============================================
@@ -40,7 +56,7 @@ if (isset($_POST["login"]) && !$is_locked) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); // Regenerate
     } else {
 
-        $email    = htmlspecialchars($_POST["email"], ENT_QUOTES, 'UTF-8');
+        $email    = trim($_POST["email"]);
         $password = $_POST["password"];
 
         require_once "database.php";
@@ -61,7 +77,8 @@ if (isset($_POST["login"]) && !$is_locked) {
 
                 $_SESSION["user"]      = "yes";
                 $_SESSION["user_id"]   = $user["id"];
-                $_SESSION["full_name"] = $user["full_name"];
+                //  MITIGASI XSS: Escape saat menyimpan ke session (defense-in-depth)
+                $_SESSION["full_name"] = htmlspecialchars($user["full_name"], ENT_QUOTES, 'UTF-8');
                 $_SESSION["role"]      = $user["role"];
 
                 header("Location: index.php");

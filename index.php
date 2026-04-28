@@ -1,5 +1,22 @@
 <?php
+// =============================================
+//  Security Headers
+// =============================================
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+
+// =============================================
+//  Secure Session Configuration
+// =============================================
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Strict');
 session_start();
+
 // PERBAIKAN: Harus pakai tanda seru (!)
 if (!isset($_SESSION["user"])) {
     header("Location: login.php");
