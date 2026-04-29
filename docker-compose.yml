@@ -24,6 +24,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # === ACL: Resource Limits — Batasi CPU & RAM ===
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
     restart: unless-stopped
 
   # ================================================================
@@ -48,6 +54,12 @@ services:
       retries: 5
     networks:
       - backend_net    # HANYA backend_net — tidak bisa diakses dari frontend
+    # === ACL: Resource Limits — Batasi CPU & RAM ===
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     restart: unless-stopped
 
   # ================================================================
@@ -81,6 +93,12 @@ services:
     labels:
       - "com.argonauth.service=snort-ids"
       - "com.argonauth.nim=101032300005"
+    # === ACL: Resource Limits — Batasi CPU & RAM ===
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 256M
     restart: unless-stopped
     depends_on:
       - app
@@ -99,6 +117,12 @@ services:
       - frontend_net   # Hanya bisa akses app, tidak ke db
     depends_on:
       - app
+    # === ACL: Resource Limits — Batasi CPU & RAM ===
+    deploy:
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 128M
     restart: unless-stopped
 
 # ================================================================

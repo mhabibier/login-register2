@@ -22,3 +22,19 @@ VALUES (
     '$2y$10$TKh8H1.PfYkfvfOU2S/bOuMb1Y.k4SrKrSV1KQM5bB.3ThjumMhHm',
     'admin'
 );
+
+-- ==============================================================
+-- ACL: MySQL User Privileges (Principle of Least Privilege)
+-- ==============================================================
+-- user_argon HANYA boleh SELECT, INSERT, UPDATE pada tabel users
+-- TIDAK boleh: DROP, DELETE, ALTER, CREATE, atau akses tabel lain
+-- ==============================================================
+
+-- Revoke semua privilege dulu (reset)
+REVOKE ALL PRIVILEGES ON `login-register`.* FROM 'user_argon'@'%';
+
+-- Berikan hanya privilege yang dibutuhkan untuk login/register
+GRANT SELECT, INSERT, UPDATE ON `login-register`.`users` TO 'user_argon'@'%';
+
+-- Terapkan perubahan privilege
+FLUSH PRIVILEGES;

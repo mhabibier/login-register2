@@ -5,8 +5,8 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-install mysqli && docker-php-ext-enable mysqli
 
-# Aktifkan modul Apache yang diperlukan untuk HTTPS
-RUN a2enmod ssl rewrite headers
+# Aktifkan modul Apache yang diperlukan untuk HTTPS + ACL
+RUN a2enmod ssl rewrite headers ratelimit reqtimeout
 
 # Salin konfigurasi Apache untuk HTTPS (menggunakan sertifikat mkcert)
 COPY apache/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
