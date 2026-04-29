@@ -87,3 +87,25 @@ alert udp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] UDP Flood Detected 
 
 # HTTP GET Flood — Layer 7 DoS
 alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP GET Flood - Possible DoS"; flow:to_server,established; content:"GET"; http_method; detection_filter:track by_src, count 30, seconds 10; classtype:attempted-dos; priority:2; sid:9001022; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 8: SQL INJECTION — Deteksi Pola Injeksi SQL (PRIORITY 1)
+# ----------------------------------------------------------------
+
+# Deteksi pola SQL Injection klasik: ' OR '1'='1 di body POST
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] SQL INJECTION DETECTED - OR 1=1 Pattern"; flow:to_server,established; content:"POST"; http_method; content:"OR"; nocase; http_client_body; content:"1"; http_client_body; content:"="; http_client_body; classtype:web-application-attack; priority:1; sid:9001060; rev:1;)
+
+# Deteksi UNION SELECT — teknik eksfiltrasi data via SQL Injection
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] SQL INJECTION DETECTED - UNION SELECT"; flow:to_server,established; content:"UNION"; nocase; http_client_body; content:"SELECT"; nocase; http_client_body; classtype:web-application-attack; priority:1; sid:9001061; rev:1;)
+
+
+# ----------------------------------------------------------------
+# SECTION 9: XSS — Deteksi Cross-Site Scripting (PRIORITY 1)
+# ----------------------------------------------------------------
+
+# Deteksi tag <script> di body request (XSS attack)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] XSS ATTACK DETECTED - Script Tag Injection"; flow:to_server,established; content:"<script"; nocase; http_client_body; classtype:web-application-attack; priority:1; sid:9001070; rev:1;)
+
+# Deteksi javascript: event handler injection (XSS via atribut HTML)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] XSS ATTACK DETECTED - Event Handler Injection"; flow:to_server,established; content:"onerror"; nocase; http_client_body; content:"="; http_client_body; classtype:web-application-attack; priority:1; sid:9001071; rev:1;)
