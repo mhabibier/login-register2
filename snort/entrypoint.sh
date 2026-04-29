@@ -233,61 +233,65 @@ echo "[INFO] ============================================"
 # CATATAN:
 #   -A fast  : format alert satu baris (mudah dibaca)
 #   -k none  : abaikan checksum error (umum di Docker)
-#   TANPA -Q : Mode IDS pasif (bukan IPS inline) — cocok untuk monitoring
-#
-# ARSITEKTUR:
-#   Snort     → background (menulis alert ke /var/log/snort/alert)
-#   tail -F   → foreground (membaca alert dan tampilkan di docker logs)
-#   trap      → kalau container di-stop, kill Snort juga
+#   TANPA -Q : Mode IDS pasif (bukan IPS inline)
+#   TANPA -u/-g : Jalankan sebagai root agar pasti bisa tulis ke alert file
 # ============================================================
 
-# Jalankan Snort di background
+# Kosongkan alert file lama agar monitoring bersih
+> /var/log/snort/alert
+
+# Jalankan Snort di background (sebagai root untuk hindari permission issue)
 snort \
     -A fast \
     -c /etc/snort/snort.conf \
     -i "$IFACE" \
     -l /var/log/snort \
-    -u snort \
-    -g snort \
     -k none 2>&1 &
 
 SNORT_PID=$!
 echo "[INFO] Snort berjalan dengan PID: $SNORT_PID"
 
-# Tunggu sebentar agar Snort sempat start dan buat file alert
-sleep 3
+# Tunggu agar Snort sempat inisialisasi
+sleep 5
 
 # Cek apakah Snort masih hidup
 if ! kill -0 $SNORT_PID 2>/dev/null; then
-    echo "[ERROR] ❌ Snort gagal start! Cek konfigurasi."
-    echo "[ERROR] Menjalankan ulang dengan output verbose..."
+    echo "[ERROR] ❌ Snort gagal start! Menampilkan error..."
     snort -A fast -c /etc/snort/snort.conf -i "$IFACE" -l /var/log/snort -k none 2>&1
     exit 1
 fi
 
-echo "[INFO] ✅ Snort berhasil start!"
-echo "[INFO] File alert:"
-ls -la /var/log/snort/alert* 2>/dev/null || echo "[WARN] Belum ada file alert"
+echo "[INFO] ✅ Snort berhasil start dan berjalan!"
+echo "[INFO] Alert file: /var/log/snort/alert"
+ls -la /var/log/snort/ 2>/dev/null
 echo ""
 echo "[INFO] ============================================"
 echo "[INFO] 🔴 LIVE ALERT MONITOR — Menunggu alert..."
+echo "[INFO]    Gunakan: docker logs -f argonauth_snort_101032300005"
+echo "[INFO]    Atau:    docker exec ... tail -f /var/log/snort/alert"
 echo "[INFO] ============================================"
 
-# Trap: kalau container di-stop (SIGTERM/SIGINT), kill Snort juga
-trap "echo '[INFO] Stopping Snort...'; kill $SNORT_PID 2>/dev/null; exit 0" SIGTERM SIGINT
-
-# Jalankan tail -F di FOREGROUND (ini yang menjaga container hidup)
-# dan juga memonitor apakah Snort masih jalan
-while kill -0 $SNORT_PID 2>/dev/null; do
-    tail -F /var/log/snort/alert 2>/dev/null &
-    TAIL_PID=$!
-    # Cek setiap 5 detik apakah Snort masih hidup
+# Trap: kalau container di-stop, kill Snort juga
+cleanup() {
+    echo "[INFO] Stopping Snort (PID: $SNORT_PID)..."
+    kill $SNORT_PID 2>/dev/null
     wait $SNORT_PID 2>/dev/null
-    SNORT_EXIT=$?
-    kill $TAIL_PID 2>/dev/null
-    echo "[WARN] Snort berhenti dengan exit code: $SNORT_EXIT"
-    break
-done
+    echo "[INFO] Snort stopped."
+    exit 0
+}
+trap cleanup SIGTERM SIGINT
 
+# Monitor alert file dan tampilkan ke stdout (docker logs)
+# Gunakan tail -F (follow by name) agar tetap baca meski file di-recreate
+tail -F /var/log/snort/alert 2>/dev/null &
+TAIL_PID=$!
+
+# Tunggu Snort selesai (container hidup selama Snort hidup)
+wait $SNORT_PID 2>/dev/null
+SNORT_EXIT=$?
+
+# Snort berhenti — kill tail dan exit
+kill $TAIL_PID 2>/dev/null
+echo "[WARN] Snort berhenti dengan exit code: $SNORT_EXIT"
 exit ${SNORT_EXIT:-1}
 
