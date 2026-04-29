@@ -35,7 +35,7 @@ alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP GET registrasi
 # ----------------------------------------------------------------
 
 # Brute force: 5 POST login dalam 10 detik dari IP yang sama
-alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] BRUTE FORCE - Multiple Login Attempts"; flow:to_server,established; content:"POST"; http_method; content:"/login.php"; http_uri; detection_filter:track by_src, count 5, seconds 10; classtype:attempted-user; sid:9001020; rev:2;)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] BRUTE FORCE - Multiple Login Attempts"; flow:to_server,established; content:"POST"; http_method; content:"/login.php"; http_uri; detection_filter:track by_src, count 5, seconds 10; classtype:attempted-user; priority:1; sid:9001020; rev:3;)
 
 # Brute force lebih agresif: 15 POST dalam 30 detik
 alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] BRUTE FORCE AGGRESSIVE - Possible Attack"; flow:to_server,established; content:"POST"; http_method; content:"/login.php"; http_uri; detection_filter:track by_src, count 15, seconds 30; classtype:attempted-user; priority:1; sid:9001021; rev:2;)
@@ -93,19 +93,19 @@ alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] HTTP GET Flood - Po
 # SECTION 8: SQL INJECTION — Deteksi Pola Injeksi SQL (PRIORITY 1)
 # ----------------------------------------------------------------
 
-# Deteksi pola SQL Injection klasik: ' OR '1'='1 di body POST
-alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] SQL INJECTION DETECTED - OR 1=1 Pattern"; flow:to_server,established; content:"POST"; http_method; content:"OR"; nocase; http_client_body; content:"1"; http_client_body; content:"="; http_client_body; classtype:web-application-attack; priority:1; sid:9001060; rev:1;)
+# Deteksi pola SQL Injection klasik: ' OR di body POST
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] SQL INJECTION DETECTED - OR 1=1 Pattern"; flow:to_server,established; content:"POST"; http_method; content:"OR"; nocase; classtype:web-application-attack; priority:1; sid:9001060; rev:2;)
 
 # Deteksi UNION SELECT — teknik eksfiltrasi data via SQL Injection
-alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] SQL INJECTION DETECTED - UNION SELECT"; flow:to_server,established; content:"UNION"; nocase; http_client_body; content:"SELECT"; nocase; http_client_body; classtype:web-application-attack; priority:1; sid:9001061; rev:1;)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] SQL INJECTION DETECTED - UNION SELECT"; flow:to_server,established; content:"POST"; http_method; content:"UNION"; nocase; content:"SELECT"; nocase; classtype:web-application-attack; priority:1; sid:9001061; rev:2;)
 
 
 # ----------------------------------------------------------------
 # SECTION 9: XSS — Deteksi Cross-Site Scripting (PRIORITY 1)
 # ----------------------------------------------------------------
 
-# Deteksi tag <script> di body request (XSS attack)
-alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] XSS ATTACK DETECTED - Script Tag Injection"; flow:to_server,established; content:"<script"; nocase; http_client_body; classtype:web-application-attack; priority:1; sid:9001070; rev:1;)
+# Deteksi tag <script> di request (XSS attack)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] XSS ATTACK DETECTED - Script Tag Injection"; flow:to_server,established; content:"<script"; nocase; classtype:web-application-attack; priority:1; sid:9001070; rev:2;)
 
 # Deteksi javascript: event handler injection (XSS via atribut HTML)
-alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] XSS ATTACK DETECTED - Event Handler Injection"; flow:to_server,established; content:"onerror"; nocase; http_client_body; content:"="; http_client_body; classtype:web-application-attack; priority:1; sid:9001071; rev:1;)
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"[ArgonAuth] XSS ATTACK DETECTED - Event Handler Injection"; flow:to_server,established; content:"onerror"; nocase; content:"="; classtype:web-application-attack; priority:1; sid:9001071; rev:2;)
