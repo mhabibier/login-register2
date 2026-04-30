@@ -118,14 +118,15 @@ fi
 auto_update_community_rules
 
 # ============================================================
-# AUTO-DETECT INTERFACE — PERBAIKAN UTAMA
+# AUTO-DETECT INTERFACE — PERBAIKAN UTAMA v2
 # ============================================================
-# Pada network_mode: host, Snort melihat semua interface host (termasuk Docker bridges).
-# Kita perlu menemukan interface bridge Docker yang membawa traffic frontend_net (172.20.x.x).
+# Pada network_mode: host, Snort melihat semua interface host termasuk:
+#   - Docker bridges (br-xxxx) ← yang kita mau
+#   - VMware interfaces (ens33) ← JANGAN dipilih!
+#   - docker0
 #
-# Format output `ip route`:
-#   172.20.0.0/24 dev br-abc123 proto kernel scope link src 172.20.0.1
-# Interface ada setelah keyword "dev"
+# PENTING: Harus eksplisit pilih br-* (Docker bridge) untuk menghindari
+# konflik dengan VMware NAT yang juga pakai subnet 192.168.x.x
 # ============================================================
 
 echo ""
@@ -134,32 +135,40 @@ echo "[INFO] Semua routes:"
 ip route
 echo ""
 
-# Metode 1: Cari interface untuk subnet frontend (172.20.x.x)
-IFACE=$(ip route | grep "172\.20\." | grep -oP 'dev \K\S+' | head -1)
-echo "[INFO] Metode 1 (frontend 172.20.x): IFACE=$IFACE"
+# Metode 1: Cari DOCKER BRIDGE (br-*) untuk subnet frontend (192.168.0.x)
+# Pola: grep khusus br-* agar tidak memilih ens33/VMware
+IFACE=$(ip route | grep "192\.168\.0\." | grep -oP 'dev \Kbr-\S+' | head -1)
+echo "[INFO] Metode 1 (Docker bridge frontend 192.168.0.x): IFACE=$IFACE"
 
 if [ -z "$IFACE" ]; then
-    # Metode 2: Cari interface untuk subnet backend (172.21.x.x)
-    IFACE=$(ip route | grep "172\.21\." | grep -oP 'dev \K\S+' | head -1)
-    echo "[INFO] Metode 2 (backend 172.21.x): IFACE=$IFACE"
+    # Metode 2: Cari DOCKER BRIDGE (br-*) untuk subnet backend (192.169.0.x)
+    IFACE=$(ip route | grep "192\.169\.0\." | grep -oP 'dev \Kbr-\S+' | head -1)
+    echo "[INFO] Metode 2 (Docker bridge backend 192.169.0.x): IFACE=$IFACE"
 fi
 
 if [ -z "$IFACE" ]; then
-    # Metode 3: Cari semua Docker bridge interfaces (br-xxxxx)
+    # Metode 3: Cari interface APAPUN (termasuk non-bridge) untuk 192.168.0.x
+    # Fallback jika Docker pakai nama interface non-standar
+    IFACE=$(ip route | grep "192\.168\.0\." | grep -oP 'dev \K\S+' | head -1)
+    echo "[INFO] Metode 3 (any interface frontend 192.168.0.x): IFACE=$IFACE"
+fi
+
+if [ -z "$IFACE" ]; then
+    # Metode 4: Cari semua Docker bridge interfaces (br-xxxxx)
     IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep '^br-' | head -1)
-    echo "[INFO] Metode 3 (any br- interface): IFACE=$IFACE"
+    echo "[INFO] Metode 4 (any br- interface): IFACE=$IFACE"
 fi
 
 if [ -z "$IFACE" ]; then
-    # Metode 4: Cari docker0
+    # Metode 5: Cari docker0
     IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep '^docker0$' | head -1)
-    echo "[INFO] Metode 4 (docker0): IFACE=$IFACE"
+    echo "[INFO] Metode 5 (docker0): IFACE=$IFACE"
 fi
 
 if [ -z "$IFACE" ]; then
-    # Metode 5 (fallback terakhir): interface pertama bukan loopback
+    # Metode 6 (fallback terakhir): interface pertama bukan loopback
     IFACE=$(ip -o link show up | awk -F': ' '{print $2}' | grep -vE '^lo$' | head -1)
-    echo "[INFO] Metode 5 (fallback first non-lo): IFACE=$IFACE"
+    echo "[INFO] Metode 6 (fallback first non-lo): IFACE=$IFACE"
 fi
 
 # Validasi interface benar-benar ada dan UP
@@ -179,7 +188,7 @@ echo "[INFO] Detail interface:"
 ip addr show "$IFACE" 2>/dev/null || true
 echo ""
 echo "[INFO] Routes terkait Docker:"
-ip route | grep -E "172\.(20|21)\." || echo "[WARN] Tidak ada route 172.20.x/172.21.x"
+ip route | grep -E "192\.(168\.0|169\.0)\." || echo "[WARN] Tidak ada route 192.168.0.x/192.169.0.x"
 echo ""
 echo "[INFO] Semua interface yang tersedia:"
 ip -o link show | awk -F': ' '{print "  - "$2}'
