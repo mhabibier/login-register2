@@ -71,8 +71,10 @@ for RULE_FILE in "${ET_RULES[@]}"; do
             -A "ArgonAuth-Snort-Updater/1.0" \
             -o "${TEMP_FILE}" "${URL}" 2>/dev/null; then
 
-        COUNT=$(grep -cE "^(alert|drop|reject|pass)" "${TEMP_FILE}" 2>/dev/null || echo 0)
-        printf "OK  (%4d rules)\n" "${COUNT}"
+        # Pastikan COUNT selalu integer bersih (hindari printf error)
+        COUNT=$(grep -cE "^(alert|drop|reject|pass)" "${TEMP_FILE}" 2>/dev/null || true)
+        COUNT=$((COUNT + 0))  # Force ke integer
+        printf "OK  (%4d rules)\n" "$COUNT"
 
         # Tulis header section dan isi rules
         {

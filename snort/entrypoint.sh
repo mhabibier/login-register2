@@ -68,8 +68,9 @@ HEADER
                 rm -f "${TEMP}"
                 FAILED=$((FAILED + 1))
             else
-                COUNT=$(grep -cE "^(alert|drop|reject|pass)" "${TEMP}" 2>/dev/null || echo 0)
-                printf "OK (%d rules)\n" "${COUNT}"
+                COUNT=$(grep -cE "^(alert|drop|reject|pass)" "${TEMP}" 2>/dev/null || true)
+                COUNT=$((COUNT + 0))
+                printf "OK (%d rules)\n" "$COUNT"
                 {
                     echo ""
                     echo "# ---- ${RULE_FILE} (Downloaded: ${TIMESTAMP}) ----"
