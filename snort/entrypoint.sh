@@ -136,22 +136,22 @@ echo "[INFO] Semua routes:"
 ip route
 echo ""
 
-# Metode 1: Cari DOCKER BRIDGE (br-*) untuk subnet frontend (172.20.x)
+# Metode 1: Cari DOCKER BRIDGE (br-*) untuk subnet frontend (192.168.10.x)
 # Pola: grep khusus br-* agar tidak memilih ens33/VMware
-IFACE=$(ip route | grep "172\.20\." | grep -oP 'dev \Kbr-\S+' | head -1)
-echo "[INFO] Metode 1 (Docker bridge frontend 172.20.x): IFACE=$IFACE"
+IFACE=$(ip route | grep "192\.168\.10\." | grep -oP 'dev \Kbr-\S+' | head -1)
+echo "[INFO] Metode 1 (Docker bridge frontend 192.168.10.x): IFACE=$IFACE"
 
 if [ -z "$IFACE" ]; then
-    # Metode 2: Cari DOCKER BRIDGE (br-*) untuk subnet backend (172.21.x)
-    IFACE=$(ip route | grep "172\.21\." | grep -oP 'dev \Kbr-\S+' | head -1)
-    echo "[INFO] Metode 2 (Docker bridge backend 172.21.x): IFACE=$IFACE"
+    # Metode 2: Cari DOCKER BRIDGE (br-*) untuk subnet backend (192.168.20.x)
+    IFACE=$(ip route | grep "192\.168\.20\." | grep -oP 'dev \Kbr-\S+' | head -1)
+    echo "[INFO] Metode 2 (Docker bridge backend 192.168.20.x): IFACE=$IFACE"
 fi
 
 if [ -z "$IFACE" ]; then
-    # Metode 3: Cari interface APAPUN (termasuk non-bridge) untuk 172.20.x
+    # Metode 3: Cari interface APAPUN (termasuk non-bridge) untuk 192.168.10.x
     # Fallback jika Docker pakai nama interface non-standar
-    IFACE=$(ip route | grep "172\.20\." | grep -oP 'dev \K\S+' | head -1)
-    echo "[INFO] Metode 3 (any interface frontend 172.20.x): IFACE=$IFACE"
+    IFACE=$(ip route | grep "192\.168\.10\." | grep -oP 'dev \K\S+' | head -1)
+    echo "[INFO] Metode 3 (any interface frontend 192.168.10.x): IFACE=$IFACE"
 fi
 
 if [ -z "$IFACE" ]; then
@@ -189,7 +189,7 @@ echo "[INFO] Detail interface:"
 ip addr show "$IFACE" 2>/dev/null || true
 echo ""
 echo "[INFO] Routes terkait Docker:"
-ip route | grep -E "172\.(20|21)\." || echo "[WARN] Tidak ada route 172.20.x/172.21.x"
+ip route | grep -E "192\.168\.(10|20)\." || echo "[WARN] Tidak ada route 192.168.10.x/192.168.20.x"
 echo ""
 echo "[INFO] Semua interface yang tersedia:"
 ip -o link show | awk -F': ' '{print "  - "$2}'
