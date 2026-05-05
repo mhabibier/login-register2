@@ -94,6 +94,18 @@ HEADER
         echo "failed=${FAILED}"
     } > "${META_FILE}"
 
+    # Append ICMP rules ke community rules
+    cat >> "${ET_OUTPUT}" << 'ICMP_RULES'
+
+# ================================================================
+# ICMP Detection (Custom Addition)
+# ================================================================
+alert icmp any any -> $HOME_NET any (msg:"[ET-Custom] ICMP Ping Detected"; itype:8; classtype:misc-activity; priority:1; sid:9901001; rev:1;)
+alert icmp any any -> $HOME_NET any (msg:"[ET-Custom] ICMP Flood Detected"; itype:8; detection_filter:track by_src, count 10, seconds 5; classtype:attempted-dos; priority:1; sid:9901002; rev:1;)
+ICMP_RULES
+    TOTAL_RULES=$((TOTAL_RULES + 2))
+    echo "[INFO] ICMP rules (priority 1) ditambahkan ke community rules"
+
     echo ""
     echo "[INFO] Community rules: ${TOTAL_RULES} rules dari ${SUCCESS}/${#ET_RULES[@]} file"
     if [ "${FAILED}" -gt 0 ]; then
