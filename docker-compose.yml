@@ -147,11 +147,11 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 192.168.10.0/24
+        - subnet: 172.20.0.0/24
 
   backend_net:
     name: argonauth_backend
     driver: bridge
     ipam:
       config:
-        - subnet: 192.168.20.0/24
+        - subnet: 172.21.0.0/24
