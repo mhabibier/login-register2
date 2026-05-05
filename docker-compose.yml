@@ -16,8 +16,10 @@ services:
       - .:/var/www/html               # Sinkronisasi file project
       - ./ssl:/etc/ssl/mkcert:ro      # Sertifikat mkcert (read-only)
     networks:
-      - frontend_net
-      - backend_net
+      frontend_net:
+        ipv4_address: 192.168.10.10
+      backend_net:
+        ipv4_address: 192.168.20.10
     healthcheck:
       test: ["CMD", "curl", "-fk", "https://localhost:443/"]
       interval: 30s
@@ -53,7 +55,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - backend_net    # HANYA backend_net — tidak bisa diakses dari frontend
+      backend_net:
+        ipv4_address: 192.168.20.20
     # === ACL: Resource Limits — Batasi CPU & RAM ===
     deploy:
       resources:
@@ -114,7 +117,8 @@ services:
     # Tetap hidup agar bisa di-exec
     command: ["sh", "-c", "while true; do sleep 3600; done"]
     networks:
-      - frontend_net   # Hanya bisa akses app, tidak ke db
+      frontend_net:
+        ipv4_address: 192.168.10.20
     depends_on:
       - app
     # === ACL: Resource Limits — Batasi CPU & RAM ===
@@ -147,11 +151,11 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/24
+        - subnet: 192.168.10.0/24
 
   backend_net:
     name: argonauth_backend
     driver: bridge
     ipam:
       config:
-        - subnet: 172.21.0.0/24
+        - subnet: 192.168.20.0/24
