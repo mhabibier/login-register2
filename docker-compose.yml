@@ -129,6 +129,24 @@ services:
           memory: 128M
     restart: unless-stopped
 
+  # ================================================================
+  # Container 5: Fail2Ban — Intrusion Prevention System (IPS)
+  # Membaca log Snort dan memblokir IP penyerang di firewall host
+  # ================================================================
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: argonauth_fail2ban_101032300005
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - snort_logs:/var/log/snort:ro        # Baca log dari snort
+      - ./fail2ban:/data                    # Folder konfigurasi fail2ban
+    restart: unless-stopped
+    depends_on:
+      - snort
+
 # ================================================================
 # Volumes
 # ================================================================

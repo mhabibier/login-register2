@@ -94,7 +94,7 @@ HEADER
         echo "failed=${FAILED}"
     } > "${META_FILE}"
 
-    # Append ICMP rules ke community rules
+    # Append ICMP rules ke community
     cat >> "${ET_OUTPUT}" << 'ICMP_RULES'
 
 # ================================================================

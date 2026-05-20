@@ -1,0 +1,18 @@
+[DEFAULT]
+# Secara default, IP diblokir selama 1 jam (3600 detik)
+bantime = 3600
+findtime = 600
+maxretry = 3
+# Menggunakan iptables untuk memblokir semua port dari IP penyerang
+banaction = iptables-allports
+
+[snort]
+enabled = true
+filter = snort
+# Membaca log dari Snort (volume yang di-share)
+logpath = /var/log/snort/alert
+backend = polling
+# Langsung blokir jika ada 1 saja serangan yang tertangkap Snort
+maxretry = 1
+# Blokir selama 1 hari (86400 detik)
+bantime = 86400
