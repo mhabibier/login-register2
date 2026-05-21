@@ -1,6 +1,6 @@
 # 🔐 ArgonAuth — Sistem Login & Registrasi Aman
 
-> **Proyek Keamanan Sistem** | Telkom University — Tingkat 3 (2026)
+> **Proyek Keamanan Sistem** 
 
 ![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?style=for-the-badge&logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-005C84?style=for-the-badge&logo=mysql&logoColor=white)
